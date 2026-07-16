@@ -1,0 +1,11 @@
+# Keep build context small and free of secrets.
+.git
+.github
+.githooks
+.env
+.env.*
+!.env.example
+*.log
+docs/
+examples/
+site/

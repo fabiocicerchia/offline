@@ -1,5 +1,12 @@
 # 📴 offline
 
+[![code-quality](https://github.com/fabiocicerchia/offline/actions/workflows/code-quality.yml/badge.svg)](https://github.com/fabiocicerchia/offline/actions/workflows/code-quality.yml)
+[![security](https://github.com/fabiocicerchia/offline/actions/workflows/security.yml/badge.svg)](https://github.com/fabiocicerchia/offline/actions/workflows/security.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/fabiocicerchia/offline/badge)](https://securityscorecards.dev/viewer/?uri=github.com/fabiocicerchia/offline)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffabiocicerchia%2Foffline.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffabiocicerchia%2Foffline?ref=badge_shield)
+[![Release](https://img.shields.io/github/v/release/fabiocicerchia/offline)](https://github.com/fabiocicerchia/offline/releases)
+
 `offline` is a Linux sandbox wrapper that executes another program with its network access completely isolated.
 
 Example:
@@ -172,12 +179,8 @@ Ubuntu/Debian dependencies:
 sudo apt install pkg-config libseccomp-dev
 ```
 
-Go dependencies:
-
-```bash
-go get github.com/seccomp/libseccomp-golang
-go get golang.org/x/sys/unix
-```
+Go dependencies are pinned in `go.mod` (`github.com/seccomp/libseccomp-golang`,
+`golang.org/x/sys`) and resolved automatically by `go build`/`go mod tidy`.
 
 ---
 
@@ -185,6 +188,22 @@ go get golang.org/x/sys/unix
 
 ```bash
 go build -o offline offline.go
+# or
+make build
+```
+
+Install a `offline` command:
+
+```bash
+make install                       # drops the binary in ~/.local/bin (on your PATH)
+make install BINDIR=/usr/local/bin # ...or anywhere else
+```
+
+Or the one-line installer (clones/updates a checkout under
+`~/.local/share/offline` and runs `make install`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/fabiocicerchia/offline/main/install.sh | bash
 ```
 
 ---
@@ -369,6 +388,30 @@ Expected:
 
 ---
 
+# Project layout
+
+```
+offline.go       the sandbox wrapper (single file, package main)
+docs/            mkdocs documentation + GitHub Pages landing page (docs/index.html)
+examples/        runnable examples
+.github/         CI workflows, issue/PR templates, dependabot
+```
+
+# Documentation
+
+Full docs live in [`docs/`](docs/) (mkdocs). Runnable examples live in
+[`examples/`](examples/).
+
+# Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). By participating you agree to the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
+# Security
+
+Found a vulnerability, especially a network-isolation bypass? See
+[SECURITY.md](SECURITY.md) — please don't open a public issue.
+
 # License
 
-MIT
+[MIT](LICENSE) © Fabio Cicerchia

@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # Keep GitHub Actions pinned versions fresh.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # Wait 7 days before proposing newly published versions — a freshly
+    # released (or repointed) package can be malicious/unstable.
+    cooldown:
+      default-days: 7
+
+  # go.mod dependencies (seccomp-golang, x/sys).
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

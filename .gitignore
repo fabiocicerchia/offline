@@ -1,0 +1,28 @@
+# Secrets / local env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Build output
+/offline
+*.exe
+dist/
+build/
+
+# Go
+*.test
+*.out
+vendor/
+
+# Logs / caches
+*.log
+.cache/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

@@ -36,13 +36,12 @@ func main() {
 	cmd.Stderr = os.Stderr
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Cloneflags:
-			syscall.CLONE_NEWUSER |
-				syscall.CLONE_NEWNET |
-				syscall.CLONE_NEWNS |
-				syscall.CLONE_NEWPID |
-				syscall.CLONE_NEWIPC |
-				syscall.CLONE_NEWUTS,
+		Cloneflags: syscall.CLONE_NEWUSER |
+			syscall.CLONE_NEWNET |
+			syscall.CLONE_NEWNS |
+			syscall.CLONE_NEWPID |
+			syscall.CLONE_NEWIPC |
+			syscall.CLONE_NEWUTS,
 
 		UidMappings: []syscall.SysProcIDMap{
 			{
