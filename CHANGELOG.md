@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `--keep-loopback` flag: brings `lo` up inside the network namespace so
+  127.0.0.1/::1 traffic works, while external addresses stay unreachable
+  (no other interface, no routes).
+- `--log-external` flag: logs each blocked network syscall (name + pid) to
+  stderr before denying it, via a seccomp `ActNotify` filter instead of
+  a plain errno.
+
 ## [0.1.0]
 
 ### Added
