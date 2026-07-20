@@ -134,8 +134,14 @@ make install BINDIR=/usr/local/bin # ...or anywhere else
 ## Usage
 
 ```bash
-./offline <program> [arguments...]
+./offline [--keep-loopback] [--log-external] <program> [arguments...]
 ```
+
+- `--keep-loopback` brings `lo` up so 127.0.0.1/::1 traffic works (e.g. a
+  local dev server or a database on localhost). External addresses stay
+  unreachable — the namespace still has no other interface and no routes.
+- `--log-external` logs each blocked network syscall (name + pid) to stderr
+  before denying it.
 
 ### Block internet access
 
@@ -200,6 +206,10 @@ Seccomp filter
     |
 No network syscalls
 ```
+
+With `--keep-loopback`, `lo` is brought up and its socket families/syscalls
+are left out of the seccomp filter; the namespace still has no other
+interface and no routes, so only 127.0.0.1/::1 traffic works.
 
 ## Limitations
 
