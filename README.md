@@ -4,7 +4,6 @@
 [![security](https://github.com/fabiocicerchia/offline/actions/workflows/security.yml/badge.svg)](https://github.com/fabiocicerchia/offline/actions/workflows/security.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/fabiocicerchia/offline/badge)](https://securityscorecards.dev/viewer/?uri=github.com/fabiocicerchia/offline)
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffabiocicerchia%2Foffline.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffabiocicerchia%2Foffline?ref=badge_shield)
 [![Release](https://img.shields.io/github/v/release/fabiocicerchia/offline)](https://github.com/fabiocicerchia/offline/releases)
 
 `offline` is a Linux sandbox wrapper that executes another program with its
@@ -291,6 +290,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). By participating you agree to the
 
 Found a vulnerability, especially a network-isolation bypass? See
 [SECURITY.md](SECURITY.md) — please don't open a public issue.
+
+## Support
+
+Need help implementing this? [Get in touch](https://fabiocicerchia.it/contact).
 
 ## License
 
