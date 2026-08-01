@@ -40,6 +40,19 @@ you don't tag or edit the changelog manually.
 So `main` is not released per-commit: changes accumulate into the release PR,
 and merging it is the deliberate release step.
 
+### Enabling release-please to open the release PR
+
+By default GitHub blocks the built-in `GITHUB_TOKEN` from opening pull
+requests, so release-please fails with _"GitHub Actions is not permitted to
+create or approve pull requests"_. Pick one of:
+
+- **Repo setting** — enable _Settings → Actions → General → Workflow
+  permissions → "Allow GitHub Actions to create and approve pull requests"_.
+  The default token then works, no secret needed.
+- **Dedicated token** — add a `RELEASE_PLEASE_TOKEN` repository secret holding
+  a PAT or GitHub App token with `contents: write` and `pull-requests: write`.
+  The workflow uses it automatically when present.
+
 ## Pull requests
 
 Fill out the PR template, link related issues, and request review. Be kind.

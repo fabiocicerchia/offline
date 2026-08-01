@@ -18,5 +18,12 @@ jobs:
     steps:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
+          # The default GITHUB_TOKEN can't open PRs when the org/repo has
+          # "Allow GitHub Actions to create and approve pull requests" turned
+          # off — release-please fails with "GitHub Actions is not permitted
+          # to create or approve pull requests". Prefer a dedicated token
+          # (a PAT or GitHub App token with contents:write + pull-requests:write)
+          # when one is configured, and fall back to GITHUB_TOKEN otherwise.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
           # "simple" is language-agnostic (tracks version.txt + CHANGELOG).
           release-type: simple
