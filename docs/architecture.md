@@ -47,3 +47,87 @@ offline <cmd> [args]
   stay allowed for local tooling) is found.
 - See the README's "Limitations" section for what this does *not* cover
   (filesystem isolation, resource limits, kernel exploit protection).
+
+## Privilege hardening
+
+### Capability dropping
+
+`offline` removes Linux capabilities:
+
+- no capability inheritance
+- reduced privilege surface
+- prevents privileged operations
+
+### No new privileges
+
+The wrapper enables `PR_SET_NO_NEW_PRIVS`, which prevents:
+
+- setuid privilege escalation
+- file capability escalation
+- privilege gain during `exec`
+
+## Seccomp filtering
+
+`offline` applies a seccomp filter.
+
+**Blocked socket families:** `AF_INET`, `AF_INET6`, `AF_PACKET` — no IPv4/IPv6
+networking, no raw packet access.
+
+**Allowed socket families:** `AF_UNIX`, `AF_NETLINK` — keeps local IPC working
+and allows commands like `ip addr`/`ip route` to inspect the isolated
+namespace.
+
+**Blocked network syscalls:** `connect()`, `bind()`, `listen()`, `accept()`,
+`accept4()`, `sendto()`, `sendmsg()`, `recvfrom()`, `recvmsg()`.
+
+## Security model
+
+The isolation layers:
+
+```
+                 Host
+                  |
+              offline
+                  |
+    +-------------+-------------+
+    |                           |
+User namespace             PID namespace
+    |
+Network namespace
+    |
+No interfaces
+No routes
+No DNS
+    |
+Seccomp filter
+    |
+No network syscalls
+```
+
+With `--keep-loopback`, `lo` is brought up and its socket families/syscalls
+are left out of the seccomp filter; the namespace still has no other
+interface and no routes, so only 127.0.0.1/::1 traffic works.
+
+## Limitations
+
+`offline` is designed to prevent network access. It does not currently
+provide:
+
+- full filesystem isolation
+- read-only filesystem enforcement
+- resource limits
+- malware analysis containment
+- kernel exploit protection
+
+A kernel compromise could bypass namespace isolation. For stronger sandboxing
+add a minimal root filesystem, read-only mounts, cgroups, Landlock,
+AppArmor/SELinux policies, or seccomp allowlist mode.
+
+## Project layout
+
+```
+offline.go       the sandbox wrapper (single file, package main)
+docs/            mkdocs documentation + GitHub Pages landing page (docs/index.html)
+examples/        runnable examples
+.github/         CI workflows, issue/PR templates, dependabot
+```
