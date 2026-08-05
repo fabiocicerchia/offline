@@ -62,38 +62,6 @@ IPC resources are isolated from the host.
 
 The process receives an isolated hostname namespace.
 
-## Privilege hardening
-
-### Capability dropping
-
-`offline` removes Linux capabilities:
-
-- no capability inheritance
-- reduced privilege surface
-- prevents privileged operations
-
-### No new privileges
-
-The wrapper enables `PR_SET_NO_NEW_PRIVS`, which prevents:
-
-- setuid privilege escalation
-- file capability escalation
-- privilege gain during `exec`
-
-## Seccomp filtering
-
-`offline` applies a seccomp filter.
-
-**Blocked socket families:** `AF_INET`, `AF_INET6`, `AF_PACKET` — no IPv4/IPv6
-networking, no raw packet access.
-
-**Allowed socket families:** `AF_UNIX`, `AF_NETLINK` — keeps local IPC working
-and allows commands like `ip addr`/`ip route` to inspect the isolated
-namespace.
-
-**Blocked network syscalls:** `connect()`, `bind()`, `listen()`, `accept()`,
-`accept4()`, `sendto()`, `sendmsg()`, `recvfrom()`, `recvmsg()`.
-
 ## Requirements
 
 Linux kernel with support for user, network, PID, mount, and IPC namespaces,
@@ -132,149 +100,12 @@ make install BINDIR=/usr/local/bin # ...or anywhere else
 
 ## Usage
 
-```bash
-./offline [--keep-loopback] [--log-external] <program> [arguments...]
+```sh
+./offline curl https://example.com   # fails: no network in the sandbox
+./offline bash                       # an offline shell
 ```
 
-- `--keep-loopback` brings `lo` up so 127.0.0.1/::1 traffic works (e.g. a
-  local dev server or a database on localhost). External addresses stay
-  unreachable — the namespace still has no other interface and no routes.
-- `--log-external` logs each blocked network syscall (name + pid) to stderr
-  before denying it.
-
-### Block internet access
-
-```bash
-./offline curl https://example.com
-```
-
-Expected:
-
-```
-curl: (6) Could not resolve host: example.com
-```
-
-### Inspect network namespace
-
-```bash
-./offline ip addr
-```
-
-Only the loopback interface is visible:
-
-```
-1: lo: <LOOPBACK>
-```
-
-### Inspect routes
-
-```bash
-./offline ip route
-```
-
-Expected: no output — no routes.
-
-### Run an offline shell
-
-```bash
-./offline bash
-```
-
-Inside, `curl https://example.com` will fail.
-
-## Security model
-
-The isolation layers:
-
-```
-                 Host
-                  |
-              offline
-                  |
-    +-------------+-------------+
-    |                           |
-User namespace             PID namespace
-    |
-Network namespace
-    |
-No interfaces
-No routes
-No DNS
-    |
-Seccomp filter
-    |
-No network syscalls
-```
-
-With `--keep-loopback`, `lo` is brought up and its socket families/syscalls
-are left out of the seccomp filter; the namespace still has no other
-interface and no routes, so only 127.0.0.1/::1 traffic works.
-
-## Limitations
-
-`offline` is designed to prevent network access. It does not currently
-provide:
-
-- full filesystem isolation
-- read-only filesystem enforcement
-- resource limits
-- malware analysis containment
-- kernel exploit protection
-
-A kernel compromise could bypass namespace isolation. For stronger sandboxing
-add a minimal root filesystem, read-only mounts, cgroups, Landlock,
-AppArmor/SELinux policies, or seccomp allowlist mode.
-
-## Troubleshooting
-
-**User namespace disabled** — check:
-
-```bash
-cat /proc/sys/kernel/unprivileged_userns_clone
-```
-
-Enable:
-
-```bash
-sudo sysctl kernel.unprivileged_userns_clone=1
-```
-
-**libseccomp missing** — error:
-
-```
-Package 'libseccomp' not found
-```
-
-Fix:
-
-```bash
-sudo apt install libseccomp-dev pkg-config
-```
-
-## Verification
-
-```bash
-./offline bash
-```
-
-Inside:
-
-```bash
-ip addr
-ip route
-curl https://example.com
-```
-
-Expected: only the loopback interface, no routes, no network access.
-
-## Project layout
-
-```
-offline.go       the sandbox wrapper (single file, package main)
-docs/            mkdocs documentation + GitHub Pages landing page (docs/index.html)
-examples/        runnable examples
-.github/         CI workflows, issue/PR templates, dependabot
-```
+More in [`docs/getting-started.md`](docs/getting-started.md).
 
 ## Documentation
 
