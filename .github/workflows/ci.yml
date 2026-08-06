@@ -26,6 +26,12 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      # libseccomp-golang is cgo, so it needs the headers, not just the runtime
+      # library the runner already ships:
+      #     Package 'libseccomp', required by 'virtual:world', not found
+      - name: install libseccomp headers
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends pkg-config libseccomp-dev
+
       # No Go test files here yet, so the build is the only real proof this
       # workflow can offer. Keep `make test` wired so it starts counting the
       # moment tests are added.
