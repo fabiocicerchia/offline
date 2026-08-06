@@ -4,6 +4,15 @@ All notable changes to this project are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1](https://github.com/fabiocicerchia/offline/compare/v1.0.0...v1.0.1) (2026-08-06)
+
+
+### Bug Fixes
+
+* **deps:** pin the Go toolchain to 1.26.5 for the stdlib CVE fixes ([b5ea232](https://github.com/fabiocicerchia/offline/commit/b5ea23221892c67c6739b0213ace91094a756967))
+* **pre-commit:** stop check-yaml failing on Helm templates and multi-doc manifests ([dad11c0](https://github.com/fabiocicerchia/offline/commit/dad11c0e44c63cae41ca6f302d2d7e235e1381d7))
+* **security:** skip the SARIF upload on private repos ([bf5f667](https://github.com/fabiocicerchia/offline/commit/bf5f66731e6b94db16a5b2c001b561352de84990))
+
 ## 1.0.0 (2026-08-01)
 
 
