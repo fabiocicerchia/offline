@@ -16,9 +16,31 @@ syscalls). Single-file entry point: `offline.go` (`package main`).
 # test:  go test ./...
 # lint:  gofmt -l . && go vet ./...
 # run:   ./offline <program> [args...]
+make help    # Show this help
+make setup   # Install the pre-commit hook
+make lint    # Run all pre-commit checks on the whole tree
+make test    # Run the test suite
+make build   # Build the offline binary
+make install # Build and drop the binary in BINDIR (default ~/.local/bin)
 ```
 
 Requires `libseccomp-dev`/`pkg-config` on the host (cgo binding); see README.
+
+## Tooling
+
+Shared config — the GitHub workflows, `.pre-commit-config.yaml`,
+`.editorconfig`, `.hadolint.yaml`, `SECURITY.md` — comes from
+[repo-skeleton](https://github.com/fabiocicerchia/repo-skeleton). Edit it
+there, not here; a local edit is drift and the next sync overwrites it.
+`check-drift.sh` in that repo reports what has diverged.
+
+- `make setup` installs the pre-commit hook, and that is the whole of it.
+  Don't add a `.githooks/` directory: `core.hooksPath` replaces `.git/hooks/`
+  wholesale, so setting it silently stops every pre-commit hook from running.
+- Hooks are pinned by commit SHA with the tag in a trailing comment. A tag can
+  be moved, a SHA cannot.
+- CI runs this same `.pre-commit-config.yaml` through `pre-commit/action`, so
+  what passes locally is what gates the pull request.
 
 ## Conventions
 
