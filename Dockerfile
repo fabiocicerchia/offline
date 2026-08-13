@@ -4,7 +4,7 @@
 # to create namespaces, so this mainly exists for CI artifact builds.
 
 # --- build stage ---
-FROM golang:1.25-bookworm AS build
+FROM golang:1.25-bookworm@sha256:6359592445455f2dbe2412bed411336035bc019a50017720d77454ffdd6d0f82 AS build
 WORKDIR /src
 RUN apt-get update && apt-get install -y --no-install-recommends pkg-config libseccomp-dev \
  && rm -rf /var/lib/apt/lists/*
@@ -14,7 +14,7 @@ COPY offline.go ./
 RUN CGO_ENABLED=1 go build -o offline offline.go
 
 # --- runtime stage ---
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim@sha256:abd67ffcfa541b485a3dff59865ab629aa048a6c613e639d36e7456b0b229241
 RUN apt-get update && apt-get install -y --no-install-recommends libseccomp2 \
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
