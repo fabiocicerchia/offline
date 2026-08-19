@@ -1,25 +1,106 @@
+// offline — run a program with its network access fully isolated.
+//
+// A small, self-contained sandbox, small enough to read in one sitting. One
+// binary, two stages:
+//
+//	default            build the namespace set and re-exec self inside it
+//	_AIRGAP_STAGE=1    (runs INSIDE the namespaces) drop privileges, install
+//	                   the seccomp filter, then exec the wrapped program
+//
+// The stages exist because unshare(2) semantics make the CHILD, not the
+// caller, the first process inside a new PID namespace — there is no way to
+// apply the full set to the running process and still have it behave.
+//
+// Isolation is layered, so a gap in one layer is not a gap in the sandbox:
+//
+//	namespaces     no interfaces, no routes, no host PIDs/IPC/mounts
+//	capabilities   the bounding and ambient sets are emptied
+//	seccomp        socket(AF_INET/AF_INET6/AF_PACKET) and the connect family
+//
+// Build:  go build -o offline offline.go
+// Usage:  offline [--keep-loopback] [--log-external] <program> [args...]
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"syscall"
 
-	"github.com/seccomp/libseccomp-golang"
+	seccomp "github.com/seccomp/libseccomp-golang"
 	"golang.org/x/sys/unix"
 )
 
+// --------------------------------------------------------------------------- //
+// Config — the isolation model lives in these constants. Review them.
+// --------------------------------------------------------------------------- //
+
+// The re-exec channel. The outer stage cannot put itself inside the new
+// namespaces, so it re-executes this same binary and hands the parsed flags
+// over through the environment rather than through argv: argv belongs to the
+// wrapped program and must reach it untouched.
 const (
 	stageEnv        = "_AIRGAP_STAGE"
 	keepLoopbackEnv = "_AIRGAP_KEEP_LOOPBACK"
 	logExternalEnv  = "_AIRGAP_LOG_EXTERNAL"
+
+	envOn = "1" // the only value any of the three ever carries
 )
 
+// jailNamespaces is the set the child is cloned into. Network is the point of
+// the tool; the other five are what stop the network being reached around it —
+// a shared mount namespace re-exposes host sockets, a shared PID/IPC namespace
+// lets the child talk to processes that still have one.
+const jailNamespaces = syscall.CLONE_NEWUSER |
+	syscall.CLONE_NEWNET |
+	syscall.CLONE_NEWNS |
+	syscall.CLONE_NEWPID |
+	syscall.CLONE_NEWIPC |
+	syscall.CLONE_NEWUTS
+
+// capBoundLast is the highest capability number the bounding-set sweep drops.
+// The bounding set is a 64-bit mask, so 63 is the ceiling by construction.
+// Sweeping the whole range rather than stopping at today's CAP_LAST_CAP is
+// what keeps this correct on a kernel that adds one: the extra calls simply
+// return EINVAL and are ignored.
+const capBoundLast = 63
+
+// The address families whose socket(2) is refused, split by whether
+// --keep-loopback releases them. AF_PACKET (raw sockets) has no legitimate
+// loopback use and stays blocked either way; the two IP families have to be
+// allowed when loopback is wanted, since 127.0.0.1/::1 are IP addresses.
+var (
+	alwaysBlockedSocketFamilies = []int{unix.AF_PACKET}
+	ipSocketFamilies            = []int{unix.AF_INET, unix.AF_INET6}
+)
+
+// blockedNetworkCalls are denied wholesale when loopback is down. With no
+// interface and no route the namespace has nothing to reach anyway; refusing
+// the syscall turns a silent connect timeout into an immediate EPERM, which is
+// far easier to read in a log than a hang.
+var blockedNetworkCalls = []string{
+	"connect",
+	"bind",
+	"listen",
+	"accept",
+	"accept4",
+	"sendto",
+	"sendmsg",
+	"recvfrom",
+	"recvmsg",
+}
+
+// --------------------------------------------------------------------------- //
+// Stage 1 — namespace setup, on the host.
+// --------------------------------------------------------------------------- //
+
+// main - Parses the flags and re-executes this binary inside fresh namespaces,
+// or runs the isolated stage when it is already inside them.
 func main() {
-	if os.Getenv(stageEnv) == "1" {
-		runIsolated(os.Getenv(keepLoopbackEnv) == "1", os.Getenv(logExternalEnv) == "1")
+	if os.Getenv(stageEnv) == envOn {
+		runIsolated(os.Getenv(keepLoopbackEnv) == envOn, os.Getenv(logExternalEnv) == envOn)
 		return
 	}
 
@@ -41,25 +122,24 @@ func main() {
 	}
 
 	cmd := exec.Command(self, flag.Args()...)
-	cmd.Env = append(os.Environ(), stageEnv+"=1")
+	cmd.Env = append(os.Environ(), stageEnv+"="+envOn)
 	if *keepLoopback {
-		cmd.Env = append(cmd.Env, keepLoopbackEnv+"=1")
+		cmd.Env = append(cmd.Env, keepLoopbackEnv+"="+envOn)
 	}
 	if *logExternal {
-		cmd.Env = append(cmd.Env, logExternalEnv+"=1")
+		cmd.Env = append(cmd.Env, logExternalEnv+"="+envOn)
 	}
 
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
+	// The single-entry ID maps make the caller root inside the user namespace
+	// and nobody outside it, which is what buys the other namespaces without
+	// any privilege on the host. setgroups stays off: leaving it on would let
+	// the mapped root drop supplementary groups it should not control.
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Cloneflags: syscall.CLONE_NEWUSER |
-			syscall.CLONE_NEWNET |
-			syscall.CLONE_NEWNS |
-			syscall.CLONE_NEWPID |
-			syscall.CLONE_NEWIPC |
-			syscall.CLONE_NEWUTS,
+		Cloneflags: jailNamespaces,
 
 		UidMappings: []syscall.SysProcIDMap{
 			{
@@ -85,6 +165,16 @@ func main() {
 	}
 }
 
+// --------------------------------------------------------------------------- //
+// Stage 2 — inside the namespaces.
+// --------------------------------------------------------------------------- //
+
+// runIsolated - Drops what the child must not keep, installs the seccomp
+// filter and runs the wrapped program, mirroring back its exit status.
+//
+// Order matters: no-new-privs first, so nothing later in this function can be
+// undone by a setuid binary; loopback before the filter, because bringing "lo"
+// up needs the very socket(2) the filter is about to refuse.
 func runIsolated(keepLoopback, logExternal bool) {
 	// Prevent privilege escalation through setuid/setcap binaries.
 	if err := unix.Prctl(unix.PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0); err != nil {
@@ -111,8 +201,9 @@ func runIsolated(keepLoopback, logExternal bool) {
 	target.Stderr = os.Stderr
 
 	if err := target.Run(); err != nil {
-		if e, ok := err.(*exec.ExitError); ok {
-			os.Exit(e.ExitCode())
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			os.Exit(exitErr.ExitCode())
 		}
 
 		fmt.Fprintln(os.Stderr, err)
@@ -120,7 +211,7 @@ func runIsolated(keepLoopback, logExternal bool) {
 	}
 }
 
-// bringUpLoopback sets the "lo" interface UP inside the new network
+// bringUpLoopback - Sets the "lo" interface UP inside the new network
 // namespace. The kernel creates it disabled by default; the namespace still
 // has no other interfaces or routes, so this only enables 127.0.0.1/::1
 // traffic, not external access.
@@ -142,12 +233,22 @@ func bringUpLoopback() error {
 	return unix.IoctlIfreq(fd, unix.SIOCSIFFLAGS, ifr)
 }
 
+// --------------------------------------------------------------------------- //
+// Capabilities.
+// --------------------------------------------------------------------------- //
+
+// dropCapabilities - Empties the bounding and ambient capability sets, so no
+// capability can be regained by exec'ing a file that carries one.
+//
+// Every call is best-effort on purpose: a number above the running kernel's
+// CAP_LAST_CAP, or a set already emptied by an outer sandbox, is an EINVAL
+// that says nothing went wrong.
 func dropCapabilities() {
 	// Remove all inheritable/effective capabilities.
-	for cap := 0; cap < 64; cap++ {
+	for capability := 0; capability <= capBoundLast; capability++ {
 		_ = unix.Prctl(
 			unix.PR_CAPBSET_DROP,
-			uintptr(cap),
+			uintptr(capability),
 			0,
 			0,
 			0,
@@ -164,6 +265,16 @@ func dropCapabilities() {
 	)
 }
 
+// --------------------------------------------------------------------------- //
+// Seccomp.
+// --------------------------------------------------------------------------- //
+
+// installSeccomp - Loads the network-blocking filter into the current process.
+//
+// The filter defaults to allow and denies by exception: the goal is to stop
+// networking, not to enumerate a syscall allowlist the wrapped program would
+// then trip over. Denials are EPERM, or a userspace notification when the
+// caller asked to see them.
 func installSeccomp(keepLoopback, logExternal bool) {
 	filter, err := seccomp.NewFilter(seccomp.ActAllow)
 	if err != nil {
@@ -177,29 +288,17 @@ func installSeccomp(keepLoopback, logExternal bool) {
 		action = seccomp.ActNotify
 	}
 
+	// A kernel that does not know socket(2) by that name is not one this tool
+	// can filter; the namespace still holds, so carry on rather than abort.
 	socketCall, err := seccomp.GetSyscallFromName("socket")
 	if err == nil {
-		blockSocketFamily := func(family int) {
-			cond, err := seccomp.MakeCondition(
-				0,
-				seccomp.CompareEqual,
-				uint64(family),
-			)
-			if err != nil {
-				panic(err)
-			}
-
-			if err := filter.AddRuleConditional(socketCall, action, []seccomp.ScmpCondition{cond}); err != nil {
-				panic(err)
-			}
+		for _, family := range alwaysBlockedSocketFamilies {
+			blockSocketFamily(filter, socketCall, action, family)
 		}
-
-		// AF_PACKET (raw sockets) has no legitimate loopback use, so it stays
-		// blocked even with --keep-loopback.
-		blockSocketFamily(unix.AF_PACKET)
 		if !keepLoopback {
-			blockSocketFamily(unix.AF_INET)
-			blockSocketFamily(unix.AF_INET6)
+			for _, family := range ipSocketFamilies {
+				blockSocketFamily(filter, socketCall, action, family)
+			}
 		}
 	}
 
@@ -208,20 +307,10 @@ func installSeccomp(keepLoopback, logExternal bool) {
 	// addresses fail at the routing layer regardless, only 127.0.0.1/::1
 	// traffic actually works.
 	if !keepLoopback {
-		for _, name := range []string{
-			"connect",
-			"bind",
-			"listen",
-			"accept",
-			"accept4",
-			"sendto",
-			"sendmsg",
-			"recvfrom",
-			"recvmsg",
-		} {
+		for _, name := range blockedNetworkCalls {
 			syscallID, err := seccomp.GetSyscallFromName(name)
 			if err != nil {
-				continue
+				continue // not on this architecture; nothing to block
 			}
 
 			if err := filter.AddRule(syscallID, action); err != nil {
@@ -243,13 +332,30 @@ func installSeccomp(keepLoopback, logExternal bool) {
 	}
 }
 
-// logBlockedSyscalls services ActNotify notifications: it logs each blocked
+// blockSocketFamily - Adds one conditional rule refusing socket(2) for a single
+// address family. Argument 0 of socket(2) is the family, hence the index.
+func blockSocketFamily(filter *seccomp.ScmpFilter, socketCall seccomp.ScmpSyscall, action seccomp.ScmpAction, family int) {
+	cond, err := seccomp.MakeCondition(
+		0,
+		seccomp.CompareEqual,
+		uint64(family),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	if err := filter.AddRuleConditional(socketCall, action, []seccomp.ScmpCondition{cond}); err != nil {
+		panic(err)
+	}
+}
+
+// logBlockedSyscalls - Services ActNotify notifications: it logs each blocked
 // syscall to stderr, then denies it with EPERM, same as the non-logging
 // path. It returns once the notify fd is closed (target process exited).
 //
-// ponytail: logs syscall name + pid only, not the resolved destination
-// address (would need to read the target's memory for sockaddr args) — add
-// if per-connection detail is needed.
+// TODO: logs syscall name + pid only, not the resolved destination address
+// (would need to read the target's memory for sockaddr args) — add if
+// per-connection detail is needed.
 func logBlockedSyscalls(fd seccomp.ScmpFd) {
 	for {
 		req, err := seccomp.NotifReceive(fd)
