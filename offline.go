@@ -359,9 +359,9 @@ func blockSocketFamily(filter *seccomp.ScmpFilter, socketCall seccomp.ScmpSyscal
 // syscall to stderr, then denies it with EPERM, same as the non-logging
 // path. It returns once the notify fd is closed (target process exited).
 //
-// TODO: logs syscall name + pid only, not the resolved destination address
-// (would need to read the target's memory for sockaddr args) — add if
-// per-connection detail is needed.
+// ponytail: logs syscall name + pid only, not the resolved destination
+// address (would need to read the target's memory for sockaddr args) — add
+// if per-connection detail is needed.
 func logBlockedSyscalls(fd seccomp.ScmpFd) {
 	for {
 		req, err := seccomp.NotifReceive(fd)
