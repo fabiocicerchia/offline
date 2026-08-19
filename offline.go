@@ -106,8 +106,14 @@ func main() {
 
 	keepLoopback := flag.Bool("keep-loopback", false, "keep the loopback interface (127.0.0.1) up and reachable")
 	logExternal := flag.Bool("log-external", false, "log blocked network syscalls to stderr")
+	// The flags are the whole interface, so --help lists them rather than
+	// only the usage line: a flag nobody can discover may as well not exist.
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "usage: %s [--keep-loopback] [--log-external] <program> [args...]\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "usage: %s [--keep-loopback] [--log-external] <program> [args...]\n\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Runs <program> with its network access fully isolated: private user, network,\n")
+		fmt.Fprintf(os.Stderr, "mount, PID, IPC and UTS namespaces, an emptied capability set, and a seccomp\n")
+		fmt.Fprintf(os.Stderr, "filter refusing the network syscalls.\n\nFlags:\n")
+		flag.PrintDefaults()
 	}
 	flag.Parse()
 
