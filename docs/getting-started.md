@@ -22,7 +22,7 @@ make build
 ./offline bash                       # an offline shell
 ```
 
-See the [README](../README.md) for the full flag reference, the security
+See the [README](README.md) for the full flag reference, the security
 model, and troubleshooting.
 
 ## Troubleshooting
