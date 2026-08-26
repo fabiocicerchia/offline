@@ -45,6 +45,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   stderr before denying it, via a seccomp `ActNotify` filter instead of
   a plain errno.
 
+### Removed
+
+- The PID namespace (`CLONE_NEWPID`) is no longer part of the sandbox. It
+  renumbered the wrapped program without giving it a matching procfs, so a
+  program looking itself up by `getpid()` read an unrelated host process —
+  `/proc/1` is the host init, owned by an unmapped root, which fails with
+  `EACCES`. Node and Bun runtimes do exactly that on startup and crashed.
+  Mounting a private `/proc` is not an option either: Ubuntu's
+  `kernel.apparmor_restrict_unprivileged_userns` confines anyone who creates
+  an unprivileged user namespace to a profile that refuses every mount. The
+  PID namespace never blocked network access, so nothing about the isolation
+  guarantee changes.
+
 ## [0.1.0]
 
 ### Added

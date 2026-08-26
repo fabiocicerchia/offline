@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/fabiocicerchia/offline)](https://github.com/fabiocicerchia/offline/releases)
 
 `offline` is a Linux sandbox wrapper that executes another program with its
-network access completely isolated: user/net/mount/PID/IPC/UTS namespaces,
+network access completely isolated: user/net/mount/IPC/UTS namespaces,
 capability dropping, and a seccomp filter blocking network syscalls.
 
 > **Linux only, and it isolates the network — nothing else.** The wrapped
@@ -25,16 +25,16 @@ access the internet.
 
 ## How it works
 
-One binary, two stages. The first cannot isolate itself — `unshare(2)` makes
-the *child* the first process inside a new PID namespace — so it re-executes
-itself and passes the flags through the environment:
+One binary, two stages. The first cannot isolate itself — a running Go program
+is multithreaded, and `unshare(CLONE_NEWUSER)` refuses a multithreaded caller —
+so it re-executes itself and passes the flags through the environment:
 
 ```
   offline [flags] <program> [args...]
       │
       │  stage 1 — on the host
       ├─ parse flags
-      └─ clone(CLONE_NEWUSER|NEWNET|NEWNS|NEWPID|NEWIPC|NEWUTS)
+      └─ clone(CLONE_NEWUSER|NEWNET|NEWNS|NEWIPC|NEWUTS)
              uid/gid mapped 1:1, setgroups off
              _AIRGAP_STAGE=1 in the environment
              │
@@ -68,8 +68,10 @@ reconfigure it with, and the filter refuses the syscalls anyway.
 - **Mount namespace isolation**, so mounts made inside the sandbox never reach
   the host. Caveat: the host filesystem itself is still visible and writable —
   this tool takes away the network, not the disk.
-- **PID and IPC namespace isolation**: host processes are invisible, and IPC
-  objects are not shared.
+- **IPC namespace isolation**, so IPC objects are not shared with the host.
+  No PID namespace: it renumbers processes without a matching `/proc`, which
+  breaks runtimes that look themselves up there, and it never blocked the
+  network anyway.
 - **UTS namespace isolation**, so the hostname is the sandbox's own.
 - **Capability dropping**, bounding *and* ambient set, so no capability can be
   regained by exec'ing a file that carries one.
@@ -85,7 +87,7 @@ reconfigure it with, and the filter refuses the syscalls anyway.
 
 ## Requirements
 
-Linux kernel with support for user, network, PID, mount, and IPC namespaces,
+Linux kernel with support for user, network, mount, and IPC namespaces,
 plus seccomp.
 
 Ubuntu/Debian dependencies:
@@ -126,7 +128,7 @@ $ offline --help
 usage: offline [--keep-loopback] [--log-external] <program> [args...]
 
 Runs <program> with its network access fully isolated: private user, network,
-mount, PID, IPC and UTS namespaces, an emptied capability set, and a seccomp
+mount, IPC and UTS namespaces, an emptied capability set, and a seccomp
 filter refusing the network syscalls.
 
 Flags:

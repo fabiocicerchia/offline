@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Linux kernel with user/network/mount/PID/IPC/UTS namespaces and seccomp.
+- Linux kernel with user/network/mount/IPC/UTS namespaces and seccomp.
 - Go 1.25+ to build.
 - `pkg-config` and `libseccomp-dev` (Ubuntu/Debian: `sudo apt install
   pkg-config libseccomp-dev`).
