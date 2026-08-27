@@ -7,13 +7,14 @@
 //	_AIRGAP_STAGE=1    (runs INSIDE the namespaces) drop privileges, install
 //	                   the seccomp filter, then exec the wrapped program
 //
-// The stages exist because unshare(2) semantics make the CHILD, not the
-// caller, the first process inside a new PID namespace — there is no way to
-// apply the full set to the running process and still have it behave.
+// The stages exist because a running Go program cannot enter a user namespace:
+// unshare(CLONE_NEWUSER) refuses a multithreaded caller, and the runtime is
+// multithreaded before main() starts. Only a fresh child can be cloned into
+// the set.
 //
 // Isolation is layered, so a gap in one layer is not a gap in the sandbox:
 //
-//	namespaces     no interfaces, no routes, no host PIDs/IPC/mounts
+//	namespaces     no interfaces, no routes, no host IPC/mounts
 //	capabilities   the bounding and ambient sets are emptied
 //	seccomp        socket(AF_INET/AF_INET6/AF_PACKET) and the connect family
 //
@@ -50,13 +51,21 @@ const (
 )
 
 // jailNamespaces is the set the child is cloned into. Network is the point of
-// the tool; the other five are what stop the network being reached around it —
-// a shared mount namespace re-exposes host sockets, a shared PID/IPC namespace
-// lets the child talk to processes that still have one.
+// the tool; the other four are what stop the network being reached around it —
+// a shared mount namespace re-exposes host sockets, a shared IPC namespace lets
+// the child talk to processes that still have one.
+//
+// CLONE_NEWPID is deliberately absent. It renumbers processes without giving
+// them a matching procfs, and mounting one needs privileges the host may not
+// grant: Ubuntu's kernel.apparmor_restrict_unprivileged_userns confines anyone
+// who creates an unprivileged user namespace to a profile that refuses every
+// mount, EACCES. The result is a child that is PID 1 while /proc still
+// describes the host, so anything reading /proc/<getpid()> — Node and Bun
+// runtimes do, on startup — reads an unrelated host process and dies. The PID
+// namespace was never what blocked the network, so it buys nothing worth that.
 const jailNamespaces = syscall.CLONE_NEWUSER |
 	syscall.CLONE_NEWNET |
 	syscall.CLONE_NEWNS |
-	syscall.CLONE_NEWPID |
 	syscall.CLONE_NEWIPC |
 	syscall.CLONE_NEWUTS
 

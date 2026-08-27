@@ -48,7 +48,7 @@ footer{margin-top:2.2rem;color:#4d665d;font-size:.82rem}
 <div class="card">
   <h1>📴 offline</h1>
   <p class="tagline">A Linux sandbox wrapper that runs a program with its network access fully isolated.</p>
-  <p class="desc">Namespaces (user/net/mount/PID/IPC/UTS) cut off every interface, route, and DNS path; capability dropping and a seccomp filter deny the network syscalls too. Two Go dependencies, single-file source, no daemon.</p>
+  <p class="desc">Namespaces (user/net/mount/IPC/UTS) cut off every interface, route, and DNS path; capability dropping and a seccomp filter deny the network syscalls too. Two Go dependencies, single-file source, no daemon.</p>
   <div class="install-label">Build &amp; run</div>
   <pre><code>git clone https://github.com/fabiocicerchia/offline
 cd offline &amp;&amp; make build

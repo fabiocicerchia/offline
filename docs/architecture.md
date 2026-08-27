@@ -10,7 +10,7 @@ env var:
 
 1. **Outer stage** (`main`, no env var set): re-execs the current binary with
    `_AIRGAP_STAGE=1` inside a `clone()` call that creates new user, network,
-   mount, PID, IPC, and UTS namespaces, mapping the caller's uid/gid into the
+   mount, IPC, and UTS namespaces, mapping the caller's uid/gid into the
    new user namespace.
 2. **Inner stage** (`runIsolated`, env var set): running inside those fresh
    namespaces, it locks down privileges before finally exec'ing the target
@@ -33,7 +33,7 @@ env var:
 
 ```
 offline <cmd> [args]
-  → re-exec self (_AIRGAP_STAGE=1) inside clone(CLONE_NEWUSER|NEWNET|NEWNS|NEWPID|NEWIPC|NEWUTS)
+  → re-exec self (_AIRGAP_STAGE=1) inside clone(CLONE_NEWUSER|NEWNET|NEWNS|NEWIPC|NEWUTS)
     → runIsolated(): no-new-privs → drop caps → seccomp filter
       → exec <cmd> [args]
 ```
@@ -91,7 +91,7 @@ The isolation layers:
                   |
     +-------------+-------------+
     |                           |
-User namespace             PID namespace
+User namespace             IPC namespace
     |
 Network namespace
     |
