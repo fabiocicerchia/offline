@@ -50,6 +50,17 @@ const (
 	envOn = "1" // the only value any of the three ever carries
 )
 
+// Positions and flag values that would otherwise be bare numbers at the call
+// site: which argv slot the wrapped program starts at, which argument of
+// socket(2) carries the address family, the ID a mapping makes root inside the
+// user namespace, and the "on" value PR_SET_NO_NEW_PRIVS expects.
+const (
+	targetArgv      = 1
+	socketFamilyArg = 0
+	namespaceRoot   = 0
+	noNewPrivsOn    = 1
+)
+
 // jailNamespaces is the set the child is cloned into. Network is the point of
 // the tool; the other four are what stop the network being reached around it —
 // a shared mount namespace re-exposes host sockets, a shared IPC namespace lets
@@ -158,7 +169,7 @@ func main() {
 
 		UidMappings: []syscall.SysProcIDMap{
 			{
-				ContainerID: 0,
+				ContainerID: namespaceRoot,
 				HostID:      os.Getuid(),
 				Size:        1,
 			},
@@ -167,7 +178,7 @@ func main() {
 		GidMappingsEnableSetgroups: false,
 		GidMappings: []syscall.SysProcIDMap{
 			{
-				ContainerID: 0,
+				ContainerID: namespaceRoot,
 				HostID:      os.Getgid(),
 				Size:        1,
 			},
@@ -192,7 +203,7 @@ func main() {
 // up needs the very socket(2) the filter is about to refuse.
 func runIsolated(keepLoopback, logExternal bool) {
 	// Prevent privilege escalation through setuid/setcap binaries.
-	if err := unix.Prctl(unix.PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0); err != nil {
+	if err := unix.Prctl(unix.PR_SET_NO_NEW_PRIVS, noNewPrivsOn, 0, 0, 0); err != nil {
 		panic(err)
 	}
 
@@ -206,11 +217,11 @@ func runIsolated(keepLoopback, logExternal bool) {
 
 	installSeccomp(keepLoopback, logExternal)
 
-	if len(os.Args) < 2 {
+	if len(os.Args) <= targetArgv {
 		os.Exit(1)
 	}
 
-	target := exec.Command(os.Args[1], os.Args[2:]...)
+	target := exec.Command(os.Args[targetArgv], os.Args[targetArgv+1:]...)
 	target.Stdin = os.Stdin
 	target.Stdout = os.Stdout
 	target.Stderr = os.Stderr
@@ -351,7 +362,7 @@ func installSeccomp(keepLoopback, logExternal bool) {
 // address family. Argument 0 of socket(2) is the family, hence the index.
 func blockSocketFamily(filter *seccomp.ScmpFilter, socketCall seccomp.ScmpSyscall, action seccomp.ScmpAction, family int) {
 	cond, err := seccomp.MakeCondition(
-		0,
+		socketFamilyArg,
 		seccomp.CompareEqual,
 		uint64(family),
 	)
