@@ -293,7 +293,9 @@ func bringUpLoopback() error {
 	if err != nil {
 		return err
 	}
-	defer unix.Close(fd)
+	// Best-effort, like the capability sweep: the fd is going away with this
+	// function either way, and a failed close has nothing to report to.
+	defer func() { _ = unix.Close(fd) }()
 
 	ifr, err := unix.NewIfreq("lo")
 	if err != nil {
