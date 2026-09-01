@@ -1,0 +1,26 @@
+---
+# yamllint's defaults are written for hand-authored YAML. Every rule relaxed
+# here is one that GitHub Actions conventions break, in files this repo syncs
+# from the portfolio rather than edits:
+#
+#   document-start  workflows are single documents; nobody opens them with ---
+#   truthy          `on:` is the trigger key, not the boolean `on`
+#   line-length     an action pinned by commit SHA does not fit in 80 columns,
+#                   and pinning is the point (see .pre-commit-config.yaml);
+#                   carbon-badge.yml carries a 121-column `gh api` call
+#   comments        the house style is one space before an inline comment
+#   braces          `schedule: [{ cron: "..." }]` is the flow style Actions docs use
+#
+# Everything else stays at default, so real YAML mistakes still fail.
+extends: default
+
+rules:
+  document-start: disable
+  truthy:
+    check-keys: false
+  line-length:
+    max: 140
+  comments:
+    min-spaces-from-content: 1
+  braces:
+    max-spaces-inside: 1
