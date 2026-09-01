@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"slices"
 	"syscall"
 
 	seccomp "github.com/seccomp/libseccomp-golang"
@@ -113,6 +114,49 @@ var blockedNetworkCalls = []string{
 }
 
 // --------------------------------------------------------------------------- //
+// The isolation policy, as chosen on the command line.
+// --------------------------------------------------------------------------- //
+
+// sandbox is what the two flags amount to: the parts of the isolation the
+// caller asked to relax. It exists so the choice travels as one named thing
+// rather than as a pair of positional booleans nobody can read at a call site.
+type sandbox struct {
+	keepLoopback bool
+	logExternal  bool
+}
+
+// sandboxFromEnv - Reads the policy back on the far side of the re-exec.
+func sandboxFromEnv() sandbox {
+	return sandbox{
+		keepLoopback: os.Getenv(keepLoopbackEnv) == envOn,
+		logExternal:  os.Getenv(logExternalEnv) == envOn,
+	}
+}
+
+// env - The policy as stage-2 environment entries, ready to append to the
+// caller's own environment.
+func (s sandbox) env() []string {
+	env := []string{stageEnv + "=" + envOn}
+	if s.keepLoopback {
+		env = append(env, keepLoopbackEnv+"="+envOn)
+	}
+	if s.logExternal {
+		env = append(env, logExternalEnv+"="+envOn)
+	}
+	return env
+}
+
+// blockedFamilies - The address families whose socket(2) this run refuses.
+// With --keep-loopback the IP families have to stay usable, since 127.0.0.1
+// and ::1 are IP addresses; AF_PACKET is refused either way.
+func (s sandbox) blockedFamilies() []int {
+	if s.keepLoopback {
+		return alwaysBlockedSocketFamilies
+	}
+	return slices.Concat(alwaysBlockedSocketFamilies, ipSocketFamilies)
+}
+
+// --------------------------------------------------------------------------- //
 // Stage 1 — namespace setup, on the host.
 // --------------------------------------------------------------------------- //
 
@@ -120,7 +164,7 @@ var blockedNetworkCalls = []string{
 // or runs the isolated stage when it is already inside them.
 func main() {
 	if os.Getenv(stageEnv) == envOn {
-		runIsolated(os.Getenv(keepLoopbackEnv) == envOn, os.Getenv(logExternalEnv) == envOn)
+		runIsolated(sandboxFromEnv())
 		return
 	}
 
@@ -139,14 +183,10 @@ func main() {
 		panic(err)
 	}
 
+	s := sandbox{keepLoopback: *keepLoopback, logExternal: *logExternal}
+
 	cmd := exec.Command(self, flag.Args()...)
-	cmd.Env = append(os.Environ(), stageEnv+"="+envOn)
-	if *keepLoopback {
-		cmd.Env = append(cmd.Env, keepLoopbackEnv+"="+envOn)
-	}
-	if *logExternal {
-		cmd.Env = append(cmd.Env, logExternalEnv+"="+envOn)
-	}
+	cmd.Env = append(os.Environ(), s.env()...)
 
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -204,13 +244,13 @@ func usage() {
 // Order matters: no-new-privs first, so nothing later in this function can be
 // undone by a setuid binary; loopback before the filter, because bringing "lo"
 // up needs the very socket(2) the filter is about to refuse.
-func runIsolated(keepLoopback, logExternal bool) {
+func runIsolated(s sandbox) {
 	// Prevent privilege escalation through setuid/setcap binaries.
 	if err := unix.Prctl(unix.PR_SET_NO_NEW_PRIVS, noNewPrivsOn, 0, 0, 0); err != nil {
 		panic(err)
 	}
 
-	if keepLoopback {
+	if s.keepLoopback {
 		if err := bringUpLoopback(); err != nil {
 			panic(err)
 		}
@@ -218,7 +258,7 @@ func runIsolated(keepLoopback, logExternal bool) {
 
 	dropCapabilities()
 
-	installSeccomp(keepLoopback, logExternal)
+	installSeccomp(s)
 
 	if len(os.Args) <= targetArgv {
 		os.Exit(1)
@@ -304,14 +344,14 @@ func dropCapabilities() {
 // networking, not to enumerate a syscall allowlist the wrapped program would
 // then trip over. Denials are EPERM, or a userspace notification when the
 // caller asked to see them.
-func installSeccomp(keepLoopback, logExternal bool) {
+func installSeccomp(s sandbox) {
 	filter, err := seccomp.NewFilter(seccomp.ActAllow)
 	if err != nil {
 		panic(err)
 	}
 
 	action := seccomp.ActErrno.SetReturnCode(int16(syscall.EPERM))
-	if logExternal {
+	if s.logExternal {
 		// Route blocked calls through userspace so they can be logged
 		// before being denied, instead of just returning EPERM.
 		action = seccomp.ActNotify
@@ -321,13 +361,8 @@ func installSeccomp(keepLoopback, logExternal bool) {
 	// can filter; the namespace still holds, so carry on rather than abort.
 	socketCall, err := seccomp.GetSyscallFromName("socket")
 	if err == nil {
-		for _, family := range alwaysBlockedSocketFamilies {
+		for _, family := range s.blockedFamilies() {
 			blockSocketFamily(filter, socketCall, action, family)
-		}
-		if !keepLoopback {
-			for _, family := range ipSocketFamilies {
-				blockSocketFamily(filter, socketCall, action, family)
-			}
 		}
 	}
 
@@ -335,7 +370,7 @@ func installSeccomp(keepLoopback, logExternal bool) {
 	// "lo" and no routes, so connect/bind/etc. are left unblocked: external
 	// addresses fail at the routing layer regardless, only 127.0.0.1/::1
 	// traffic actually works.
-	if !keepLoopback {
+	if !s.keepLoopback {
 		for _, name := range blockedNetworkCalls {
 			syscallID, err := seccomp.GetSyscallFromName(name)
 			if err != nil {
@@ -352,7 +387,7 @@ func installSeccomp(keepLoopback, logExternal bool) {
 		panic(err)
 	}
 
-	if logExternal {
+	if s.logExternal {
 		notifFd, err := filter.GetNotifFd()
 		if err != nil {
 			panic(err)
