@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Bug Fixes
+
+* pass the wrapped program's exit status through the outer stage instead of
+  collapsing every failure to `1`, and stop writing `exit status N` to the
+  program's own stderr. A program killed by a signal now reports `128+signal`
+  rather than `255`.
+* drop the `PID` namespace from the `--help` text: `CLONE_NEWPID` was removed
+  in 1.1.1 and the help had been overstating what is isolated ever since.
+
 ## [1.1.1](https://github.com/fabiocicerchia/offline/compare/v1.1.0...v1.1.1) (2026-08-29)
 
 

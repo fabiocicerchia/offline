@@ -242,7 +242,7 @@ func singleIDMap(hostID int) []syscall.SysProcIDMap {
 func usage() {
 	fmt.Fprintf(os.Stderr, "usage: %s [--keep-loopback] [--log-external] <program> [args...]\n\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "Runs <program> with its network access fully isolated: private user, network,\n")
-	fmt.Fprintf(os.Stderr, "mount, PID, IPC and UTS namespaces, an emptied capability set, and a seccomp\n")
+	fmt.Fprintf(os.Stderr, "mount, IPC and UTS namespaces, an emptied capability set, and a seccomp\n")
 	fmt.Fprintf(os.Stderr, "filter refusing the network syscalls.\n\nFlags:\n")
 	flag.PrintDefaults()
 }
