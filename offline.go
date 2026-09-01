@@ -178,49 +178,56 @@ func main() {
 		os.Exit(1)
 	}
 
+	reexecIsolated(sandbox{keepLoopback: *keepLoopback, logExternal: *logExternal})
+}
+
+// reexecIsolated - Re-executes this binary inside fresh namespaces and exits
+// with whatever the wrapped program exited with.
+func reexecIsolated(s sandbox) {
 	self, err := os.Executable()
 	if err != nil {
 		panic(err)
 	}
 
-	s := sandbox{keepLoopback: *keepLoopback, logExternal: *logExternal}
-
 	cmd := exec.Command(self, flag.Args()...)
 	cmd.Env = append(os.Environ(), s.env()...)
+	cmd.SysProcAttr = jailAttr()
 
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// The single-entry ID maps make the caller root inside the user namespace
-	// and nobody outside it, which is what buys the other namespaces without
-	// any privilege on the host. setgroups stays off: leaving it on would let
-	// the mapped root drop supplementary groups it should not control.
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Cloneflags: jailNamespaces,
-
-		UidMappings: []syscall.SysProcIDMap{
-			{
-				ContainerID: namespaceRoot,
-				HostID:      os.Getuid(),
-				Size:        1,
-			},
-		},
-
-		GidMappingsEnableSetgroups: false,
-		GidMappings: []syscall.SysProcIDMap{
-			{
-				ContainerID: namespaceRoot,
-				HostID:      os.Getgid(),
-				Size:        1,
-			},
-		},
-	}
-
 	if err := cmd.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+// jailAttr - The clone(2) arguments that build the sandbox: the namespace set,
+// and the ID maps that make the caller root inside the user namespace.
+//
+// setgroups stays off: leaving it on would let the mapped root drop
+// supplementary groups it should not control.
+func jailAttr() *syscall.SysProcAttr {
+	return &syscall.SysProcAttr{
+		Cloneflags: jailNamespaces,
+
+		UidMappings: singleIDMap(os.Getuid()),
+
+		GidMappingsEnableSetgroups: false,
+		GidMappings:                singleIDMap(os.Getgid()),
+	}
+}
+
+// singleIDMap - The one-entry map making hostID root inside the user namespace
+// and nobody outside it, which is what buys the other namespaces without any
+// privilege on the host.
+func singleIDMap(hostID int) []syscall.SysProcIDMap {
+	return []syscall.SysProcIDMap{{
+		ContainerID: namespaceRoot,
+		HostID:      hostID,
+		Size:        1,
+	}}
 }
 
 // usage - Prints the whole interface. The flags are all of it, so --help lists
@@ -357,30 +364,14 @@ func installSeccomp(s sandbox) {
 		action = seccomp.ActNotify
 	}
 
-	// A kernel that does not know socket(2) by that name is not one this tool
-	// can filter; the namespace still holds, so carry on rather than abort.
-	socketCall, err := seccomp.GetSyscallFromName("socket")
-	if err == nil {
-		for _, family := range s.blockedFamilies() {
-			blockSocketFamily(filter, socketCall, action, family)
-		}
-	}
+	blockSocketFamilies(filter, action, s.blockedFamilies())
 
 	// With --keep-loopback the namespace still has no interface other than
 	// "lo" and no routes, so connect/bind/etc. are left unblocked: external
 	// addresses fail at the routing layer regardless, only 127.0.0.1/::1
 	// traffic actually works.
 	if !s.keepLoopback {
-		for _, name := range blockedNetworkCalls {
-			syscallID, err := seccomp.GetSyscallFromName(name)
-			if err != nil {
-				continue // not on this architecture; nothing to block
-			}
-
-			if err := filter.AddRule(syscallID, action); err != nil {
-				panic(err)
-			}
-		}
+		blockNetworkCalls(filter, action)
 	}
 
 	if err := filter.Load(); err != nil {
@@ -396,20 +387,45 @@ func installSeccomp(s sandbox) {
 	}
 }
 
-// blockSocketFamily - Adds one conditional rule refusing socket(2) for a single
+// blockSocketFamilies - Adds one conditional rule refusing socket(2) per
 // address family. Argument 0 of socket(2) is the family, hence the index.
-func blockSocketFamily(filter *seccomp.ScmpFilter, socketCall seccomp.ScmpSyscall, action seccomp.ScmpAction, family int) {
-	cond, err := seccomp.MakeCondition(
-		socketFamilyArg,
-		seccomp.CompareEqual,
-		uint64(family),
-	)
+//
+// A kernel that does not know socket(2) by that name is not one this tool can
+// filter; the namespace still holds, so carry on rather than abort.
+func blockSocketFamilies(filter *seccomp.ScmpFilter, action seccomp.ScmpAction, families []int) {
+	socketCall, err := seccomp.GetSyscallFromName("socket")
 	if err != nil {
-		panic(err)
+		return
 	}
 
-	if err := filter.AddRuleConditional(socketCall, action, []seccomp.ScmpCondition{cond}); err != nil {
-		panic(err)
+	for _, family := range families {
+		cond, err := seccomp.MakeCondition(
+			socketFamilyArg,
+			seccomp.CompareEqual,
+			uint64(family),
+		)
+		if err != nil {
+			panic(err)
+		}
+
+		if err := filter.AddRuleConditional(socketCall, action, []seccomp.ScmpCondition{cond}); err != nil {
+			panic(err)
+		}
+	}
+}
+
+// blockNetworkCalls - Refuses the connect family outright. A name the running
+// architecture does not have is skipped: there is nothing there to block.
+func blockNetworkCalls(filter *seccomp.ScmpFilter, action seccomp.ScmpAction) {
+	for _, name := range blockedNetworkCalls {
+		syscallID, err := seccomp.GetSyscallFromName(name)
+		if err != nil {
+			continue // not on this architecture; nothing to block
+		}
+
+		if err := filter.AddRule(syscallID, action); err != nil {
+			panic(err)
+		}
 	}
 }
 
