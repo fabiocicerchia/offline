@@ -1,8 +1,11 @@
 package main
 
 import (
+	"errors"
+	"os/exec"
 	"slices"
 	"strings"
+	"syscall"
 	"testing"
 
 	"golang.org/x/sys/unix"
@@ -24,6 +27,29 @@ func TestBlockedFamilies(t *testing.T) {
 		}
 		if slices.Contains(sandbox{keepLoopback: true}.blockedFamilies(), family) {
 			t.Errorf("family %d must be usable with --keep-loopback", family)
+		}
+	}
+}
+
+// A wrapped program's status is offline's status: an exit code passes through
+// as itself, and a signal death as the shells' 128+signal.
+func TestExitCode(t *testing.T) {
+	for _, tc := range []struct {
+		script string
+		want   int
+	}{
+		{"exit 7", 7},
+		{"exit 1", exitFailure},
+		{"kill -TERM $$", exitSignalBase + int(syscall.SIGTERM)},
+	} {
+		err := exec.Command("sh", "-c", tc.script).Run()
+
+		var exitErr *exec.ExitError
+		if !errors.As(err, &exitErr) {
+			t.Fatalf("sh -c %q: want an ExitError, got %v", tc.script, err)
+		}
+		if got := exitCode(exitErr); got != tc.want {
+			t.Errorf("sh -c %q: exitCode = %d, want %d", tc.script, got, tc.want)
 		}
 	}
 }

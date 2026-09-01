@@ -51,6 +51,18 @@ const (
 	envOn = "1" // the only value any of the three ever carries
 )
 
+// The exit codes offline produces of its own accord. Anything else a caller
+// sees is the wrapped program's own status, passed through untouched.
+const (
+	// exitFailure is offline failing: a bad invocation, or a program that
+	// never started. A program that started and exited non-zero is not this.
+	exitFailure = 1
+
+	// exitSignalBase is the shells' 128+signal convention, used for a wrapped
+	// program killed by a signal — it has no exit code of its own.
+	exitSignalBase = 128
+)
+
 // Positions and flag values that would otherwise be bare numbers at the call
 // site: which argv slot the wrapped program starts at, which argument of
 // socket(2) carries the address family, the ID a mapping makes root inside the
@@ -175,7 +187,7 @@ func main() {
 
 	if flag.NArg() < 1 {
 		flag.Usage()
-		os.Exit(1)
+		os.Exit(exitFailure)
 	}
 
 	reexecIsolated(sandbox{keepLoopback: *keepLoopback, logExternal: *logExternal})
@@ -194,10 +206,7 @@ func reexecIsolated(s sandbox) {
 	cmd.SysProcAttr = jailAttr()
 	wireStdio(cmd)
 
-	if err := cmd.Run(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	runAndExit(cmd)
 }
 
 // jailAttr - The clone(2) arguments that build the sandbox: the namespace set,
@@ -265,21 +274,14 @@ func runIsolated(s sandbox) {
 	installSeccomp(s)
 
 	if len(os.Args) <= targetArgv {
-		os.Exit(1)
+		fmt.Fprintln(os.Stderr, "offline: no program to run")
+		os.Exit(exitFailure)
 	}
 
 	target := exec.Command(os.Args[targetArgv], os.Args[targetArgv+1:]...)
 	wireStdio(target)
 
-	if err := target.Run(); err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			os.Exit(exitErr.ExitCode())
-		}
-
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	runAndExit(target)
 }
 
 // bringUpLoopback - Sets the "lo" interface UP inside the new network
@@ -314,6 +316,43 @@ func wireStdio(cmd *exec.Cmd) {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+}
+
+// runAndExit - Runs cmd and exits with its status, or returns if it succeeded.
+//
+// A program that ran and exited non-zero is not an offline failure, so its
+// code is passed through and nothing is added to its stderr; only a failure to
+// run the program at all is reported as offline's own. Both stages route
+// through here, because the outer one collapsing the status on the way back
+// out would undo the inner one's passthrough.
+func runAndExit(cmd *exec.Cmd) {
+	err := cmd.Run()
+	if err == nil {
+		return
+	}
+
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		os.Exit(exitCode(exitErr))
+	}
+
+	fmt.Fprintln(os.Stderr, err)
+	os.Exit(exitFailure)
+}
+
+// exitCode - The status to exit with for a program that ran and failed.
+// ExitCode reports -1 for a process killed by a signal, which has no exit code
+// of its own; 128+signal is what a caller's shell expects there.
+func exitCode(exitErr *exec.ExitError) int {
+	if code := exitErr.ExitCode(); code >= 0 {
+		return code
+	}
+
+	status, ok := exitErr.Sys().(syscall.WaitStatus)
+	if !ok || !status.Signaled() {
+		return exitFailure
+	}
+	return exitSignalBase + int(status.Signal())
 }
 
 // --------------------------------------------------------------------------- //
