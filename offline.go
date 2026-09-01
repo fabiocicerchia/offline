@@ -192,10 +192,7 @@ func reexecIsolated(s sandbox) {
 	cmd := exec.Command(self, flag.Args()...)
 	cmd.Env = append(os.Environ(), s.env()...)
 	cmd.SysProcAttr = jailAttr()
-
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	wireStdio(cmd)
 
 	if err := cmd.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -272,9 +269,7 @@ func runIsolated(s sandbox) {
 	}
 
 	target := exec.Command(os.Args[targetArgv], os.Args[targetArgv+1:]...)
-	target.Stdin = os.Stdin
-	target.Stdout = os.Stdout
-	target.Stderr = os.Stderr
+	wireStdio(target)
 
 	if err := target.Run(); err != nil {
 		var exitErr *exec.ExitError
@@ -307,6 +302,18 @@ func bringUpLoopback() error {
 	}
 	ifr.SetUint16(ifr.Uint16() | unix.IFF_UP | unix.IFF_RUNNING)
 	return unix.IoctlIfreq(fd, unix.SIOCSIFFLAGS, ifr)
+}
+
+// --------------------------------------------------------------------------- //
+// Running the wrapped program. Both stages end here.
+// --------------------------------------------------------------------------- //
+
+// wireStdio - Hands the caller's own streams to cmd. offline is a wrapper, so
+// the wrapped program's stdin/stdout/stderr are the caller's, untouched.
+func wireStdio(cmd *exec.Cmd) {
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 }
 
 // --------------------------------------------------------------------------- //
