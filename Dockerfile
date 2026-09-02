@@ -19,4 +19,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends libseccomp2 \
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /src/offline /app/offline
+# hardener: run this image with `docker run --read-only` for a read-only rootfs
+# The hardener's other suggestion, `USER 10001`, is deliberately not applied:
+# offline creates user/net/mount/PID/IPC/UTS namespaces, this image is
+# documented as needing --privileged to do so, and CLAUDE.md treats the
+# privilege context as a security decision rather than a routine hardening.
 ENTRYPOINT ["/app/offline"]
