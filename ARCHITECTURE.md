@@ -8,18 +8,7 @@ Each item fired because a measurement crossed a threshold. The numbers and the e
 
 | | count |
 |---|---:|
-| Worth attention | 1 |
 | Notes | 1 |
-
-### Worth attention · No test files were found anywhere in the tree.
-
-**Why it matters.** Without tests, every finding in this document is harder to act on. Cycles, layer violations, and oversized components are all fixed by moving code, and moving code without tests means each fix carries risk that has nothing to do with the fix itself.
-
-**What usually causes it.** Tests kept in a separate repository, or named in a way this tool does not recognise.
-
-**What to do.** If they exist elsewhere, add their directory to `roots` or their naming to `test_dirs` in `.automap.json` so this check means something.
-
-<sub>`ARCH-NOTESTS` · Testing</sub>
 
 ### Note · No layering declared, so layer checks are off.
 
@@ -71,7 +60,7 @@ What was read, and where every import went. Third-party means the target is expe
 
 - 1 modules across 1 components
 - 0 internal import edges, 0 component couplings
-- 393 lines
+- 410 lines
 - propagation cost 0% — the share of other components an average component can reach through import paths
 - Go module `github.com/fabiocicerchia/offline`
 
@@ -79,7 +68,7 @@ What was read, and where every import went. Third-party means the target is expe
 
 ```mermaid
 graph LR
-  _root_["(root)<br/><small>Go · 1 mod · 393 loc</small>"]
+  _root_["(root)<br/><small>Go · 1 mod · 410 loc</small>"]
 ```
 
 Dashed edges came from heuristic scanners. Thick borders are in a cycle. Labels count import sites.
@@ -106,7 +95,7 @@ What each root actually pulls in, to a depth of three. Nothing imports these mod
 
 | Component | Languages | Modules | LOC | Fan-in | Fan-out | Instability |
 |---|---|---:|---:|---:|---:|---:|
-| `(root)` | Go | 1 | 393 | 0 | 0 | 0.0 |
+| `(root)` | Go | 1 | 410 | 0 | 0 | 0.0 |
 
 Instability is fan-out / (fan-in + fan-out). A component many things depend on that itself depends widely propagates change in both directions.
 
@@ -131,7 +120,7 @@ Most-changed files in the last 12 months. This is where any map you carry in you
 
 | File | Lines touched | LOC | Language |
 |---|---:|---:|---|
-| `offline.go` | 597 | 393 | Go |
+| `offline.go` | 662 | 410 | Go |
 
 ## Public surface
 

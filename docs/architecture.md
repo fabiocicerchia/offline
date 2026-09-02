@@ -24,10 +24,16 @@ env var:
   the seccomp filter, then `exec.Command` + `Run()`s the target program.
 - **`dropCapabilities`** — `PR_CAPBSET_DROP` for every capability bit, clears
   ambient capabilities.
-- **`installSeccomp`** — builds an allow-by-default `libseccomp` filter that
-  denies `AF_INET`/`AF_INET6`/`AF_PACKET` sockets and the core network
+- **`seccompDenials`** — the policy as data: which socket address families and
+  which whole syscalls are refused for a given `--keep-loopback` setting.
+- **`buildSeccompFilter`** — assembles an allow-by-default `libseccomp` filter
+  denying `AF_INET`/`AF_INET6`/`AF_PACKET` sockets and the core network
   syscalls (`connect`, `bind`, `listen`, `accept`, `accept4`, `send*`,
-  `recv*`).
+  `recv*`), without installing it. Building needs no namespace, so this is
+  where the tests read the policy back.
+- **`installSeccomp`** — loads that filter into the current process, and
+  panics if it will not load: a child that runs unfiltered is worse than one
+  that does not run.
 
 ## Data flow
 
