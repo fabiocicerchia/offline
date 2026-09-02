@@ -115,3 +115,135 @@ func TestCapabilitySweepCoversKernelRange(t *testing.T) {
 			capBoundLast, capBoundLast+1, kernelLast)
 	}
 }
+
+// The two actions the filter denies with, as libseccomp's pseudo filter code
+// prints them. ERRNO(1) is EPERM; SCMP_ACT_NOTIFY has no printed name in
+// libseccomp 2.5, so PFC shows its raw value.
+const (
+	denyEPERM  = "ERRNO(1)"
+	denyNotify = "0x7fc00000"
+)
+
+// The address family numbers, spelled out rather than taken from unix.AF_*, so
+// this file states the policy independently of the file it is checking.
+const (
+	afINET   = "2"
+	afINET6  = "10"
+	afPACKET = "17"
+)
+
+// TestFilterDeniesTheNetwork - Reads the policy back out of the filter that
+// would be installed. This is the whole reason buildSeccompFilter is separate
+// from installSeccomp: loading a filter needs a user namespace this process
+// does not have, but exporting one needs nothing.
+//
+// The expected sets below are written out by hand on purpose. Deriving them
+// from alwaysBlockedSocketFamilies and blockedNetworkCalls would make the test
+// agree with whatever those tables happen to say.
+func TestFilterDeniesTheNetwork(t *testing.T) {
+	networkCalls := []string{
+		"connect", "bind", "listen", "accept", "accept4",
+		"sendto", "sendmsg", "recvfrom", "recvmsg",
+	}
+
+	cases := []struct {
+		name         string
+		keepLoopback bool
+		logExternal  bool
+		deny         string
+	}{
+		{name: "isolated", deny: denyEPERM},
+		{name: "isolated, logging", logExternal: true, deny: denyNotify},
+		{name: "loopback kept", keepLoopback: true, deny: denyEPERM},
+		{name: "loopback kept, logging", keepLoopback: true, logExternal: true, deny: denyNotify},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// The default stays ALLOW in every case: this filter denies by
+			// exception, it is not an allowlist.
+			want := map[string]string{"default": "ALLOW"}
+
+			// AF_PACKET has no loopback use, so it is refused either way.
+			want["socket("+afPACKET+")"] = tc.deny
+
+			if !tc.keepLoopback {
+				// 127.0.0.1 and ::1 are IP addresses, so the IP families can
+				// only be refused when loopback is not wanted.
+				want["socket("+afINET+")"] = tc.deny
+				want["socket("+afINET6+")"] = tc.deny
+				for _, call := range networkCalls {
+					want[call] = tc.deny
+				}
+			}
+
+			got := exportedPolicy(t, tc.keepLoopback, tc.logExternal)
+
+			for key, action := range want {
+				if got[key] != action {
+					t.Errorf("%s: action = %q, want %q", key, got[key], action)
+				}
+			}
+			for key, action := range got {
+				if _, expected := want[key]; !expected {
+					t.Errorf("%s: unexpected rule, action %q", key, action)
+				}
+			}
+		})
+	}
+}
+
+// exportedPolicy - Builds the filter and reads its pseudo filter code back as
+// a rule -> action map. Keys are a syscall name, or `socket(<family>)` for the
+// conditional socket(2) rules; `default` is the fall-through action.
+func exportedPolicy(t *testing.T, keepLoopback, logExternal bool) map[string]string {
+	t.Helper()
+
+	dump, err := os.Create(filepath.Join(t.TempDir(), "filter.pfc"))
+	if err != nil {
+		t.Fatalf("temp file: %v", err)
+	}
+	defer dump.Close()
+
+	if err := buildSeccompFilter(keepLoopback, logExternal).ExportPFC(dump); err != nil {
+		t.Fatalf("export: %v", err)
+	}
+
+	raw, err := os.ReadFile(dump.Name())
+	if err != nil {
+		t.Fatalf("read back: %v", err)
+	}
+
+	policy := map[string]string{}
+	rule, family := "", ""
+
+	for _, line := range strings.Split(string(raw), "\n") {
+		line = strings.TrimSpace(line)
+
+		switch {
+		case strings.HasPrefix(line, "#"):
+			// Every comment opens a new section, so it ends the previous
+			// rule; the architecture footer must not inherit socket's name.
+			rule, family = "", ""
+			if _, name, ok := strings.Cut(line, `filter for syscall "`); ok {
+				rule, _, _ = strings.Cut(name, `"`)
+			}
+			if strings.Contains(line, "default action") {
+				rule = "default"
+			}
+		case strings.HasPrefix(line, "if ($a0.lo32 == "):
+			family = strings.TrimSuffix(strings.TrimPrefix(line, "if ($a0.lo32 == "), ")")
+		case strings.HasPrefix(line, "action ") && rule != "":
+			key := rule
+			if family != "" {
+				key += "(" + family + ")"
+			}
+			policy[key] = strings.TrimSuffix(strings.TrimPrefix(line, "action "), ";")
+		}
+	}
+
+	if len(policy) == 0 {
+		t.Fatalf("no rules parsed out of:\n%s", raw)
+	}
+	return policy
+}

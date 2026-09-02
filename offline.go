@@ -284,13 +284,31 @@ func dropCapabilities() {
 // Seccomp.
 // --------------------------------------------------------------------------- //
 
-// installSeccomp - Loads the network-blocking filter into the current process.
+// seccompDenials - The policy itself, as data: which socket(2) address
+// families and which whole syscalls are refused for a given --keep-loopback
+// setting.
+//
+// With --keep-loopback the namespace still has no interface other than "lo"
+// and no routes, so connect/bind/etc. are left unblocked: external addresses
+// fail at the routing layer regardless, only 127.0.0.1/::1 traffic actually
+// works.
+func seccompDenials(keepLoopback bool) (families []int, calls []string) {
+	families = append(families, alwaysBlockedSocketFamilies...)
+	if keepLoopback {
+		return families, nil
+	}
+	return append(families, ipSocketFamilies...), blockedNetworkCalls
+}
+
+// buildSeccompFilter - Assembles the network-blocking filter without
+// installing it. Splitting the build from the load is what lets a test read
+// the policy back — Load() needs a namespace, ExportPFC does not.
 //
 // The filter defaults to allow and denies by exception: the goal is to stop
 // networking, not to enumerate a syscall allowlist the wrapped program would
 // then trip over. Denials are EPERM, or a userspace notification when the
 // caller asked to see them.
-func installSeccomp(keepLoopback, logExternal bool) {
+func buildSeccompFilter(keepLoopback, logExternal bool) *seccomp.ScmpFilter {
 	filter, err := seccomp.NewFilter(seccomp.ActAllow)
 	if err != nil {
 		panic(err)
@@ -303,36 +321,35 @@ func installSeccomp(keepLoopback, logExternal bool) {
 		action = seccomp.ActNotify
 	}
 
+	families, calls := seccompDenials(keepLoopback)
+
 	// A kernel that does not know socket(2) by that name is not one this tool
 	// can filter; the namespace still holds, so carry on rather than abort.
-	socketCall, err := seccomp.GetSyscallFromName("socket")
-	if err == nil {
-		for _, family := range alwaysBlockedSocketFamilies {
+	if socketCall, err := seccomp.GetSyscallFromName("socket"); err == nil {
+		for _, family := range families {
 			blockSocketFamily(filter, socketCall, action, family)
 		}
-		if !keepLoopback {
-			for _, family := range ipSocketFamilies {
-				blockSocketFamily(filter, socketCall, action, family)
-			}
+	}
+
+	for _, name := range calls {
+		syscallID, err := seccomp.GetSyscallFromName(name)
+		if err != nil {
+			continue // not on this architecture; nothing to block
+		}
+
+		if err := filter.AddRule(syscallID, action); err != nil {
+			panic(err)
 		}
 	}
 
-	// With --keep-loopback the namespace still has no interface other than
-	// "lo" and no routes, so connect/bind/etc. are left unblocked: external
-	// addresses fail at the routing layer regardless, only 127.0.0.1/::1
-	// traffic actually works.
-	if !keepLoopback {
-		for _, name := range blockedNetworkCalls {
-			syscallID, err := seccomp.GetSyscallFromName(name)
-			if err != nil {
-				continue // not on this architecture; nothing to block
-			}
+	return filter
+}
 
-			if err := filter.AddRule(syscallID, action); err != nil {
-				panic(err)
-			}
-		}
-	}
+// installSeccomp - Loads the network-blocking filter into the current process.
+// A filter that will not load leaves the child unprotected, so it panics
+// rather than carrying on.
+func installSeccomp(keepLoopback, logExternal bool) {
+	filter := buildSeccompFilter(keepLoopback, logExternal)
 
 	if err := filter.Load(); err != nil {
 		panic(err)
