@@ -393,13 +393,15 @@ func dropCapabilities() {
 // Seccomp.
 // --------------------------------------------------------------------------- //
 
-// installSeccomp - Loads the network-blocking filter into the current process.
+// buildSeccompFilter - Assembles the network-blocking filter without
+// installing it. Splitting the build from the load is what lets a test read
+// the policy back — Load() needs a namespace, ExportPFC does not.
 //
 // The filter defaults to allow and denies by exception: the goal is to stop
 // networking, not to enumerate a syscall allowlist the wrapped program would
 // then trip over. Denials are EPERM, or a userspace notification when the
 // caller asked to see them.
-func installSeccomp(s sandbox) {
+func buildSeccompFilter(s sandbox) *seccomp.ScmpFilter {
 	filter, err := seccomp.NewFilter(seccomp.ActAllow)
 	if err != nil {
 		panic(err)
@@ -421,6 +423,15 @@ func installSeccomp(s sandbox) {
 	if !s.keepLoopback {
 		blockNetworkCalls(filter, action)
 	}
+
+	return filter
+}
+
+// installSeccomp - Loads the network-blocking filter into the current process.
+// A filter that will not load leaves the child unprotected, so it panics
+// rather than carrying on.
+func installSeccomp(s sandbox) {
+	filter := buildSeccompFilter(s)
 
 	if err := filter.Load(); err != nil {
 		panic(err)
