@@ -1,0 +1,11 @@
+# gandalf detects "python" from docs/requirements.txt (the mkdocs build), then
+# runs the Python gates against a repo whose only source file is Go. pytest
+# reports "no tests ran" as a failure, and atheris wants a fuzz harness under
+# tests/fuzz/ for modules that do not exist. go_build and go_test are the gates
+# that actually cover this codebase, and they run.
+#
+# Nothing else is skipped on purpose. The DAST gates (dalfox, nikto, sqlmap)
+# stay enabled and warn that they have no --target: offline is a CLI with no
+# web surface, and a security tool should show that gap rather than hide it.
+[gandalf]
+skip = ["tests", "atheris"]

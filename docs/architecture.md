@@ -18,22 +18,30 @@ env var:
 
 ## Components
 
-- **`main`** — parses args, sets up `syscall.SysProcAttr.Cloneflags` and
-  UID/GID mappings, re-execs itself into the sandbox.
+- **`sandbox`** — the two flags as one named value, and the only thing that
+  crosses the re-exec: `env()` writes it into the child's environment,
+  `sandboxFromEnv()` reads it back, `blockedFamilies()` turns it into the
+  socket families the filter refuses.
+- **`main`** — parses the flags, or dispatches to the isolated stage when the
+  `_AIRGAP_STAGE` marker says it is already inside the namespaces.
+- **`reexecIsolated`** / **`jailAttr`** — `jailAttr` is the `clone()` argument
+  set (`Cloneflags` plus the single-entry UID/GID maps); `reexecIsolated`
+  re-runs this binary under it.
 - **`runIsolated`** — sets `PR_SET_NO_NEW_PRIVS`, drops capabilities, installs
-  the seccomp filter, then `exec.Command` + `Run()`s the target program.
+  the seccomp filter, then runs the target program.
 - **`dropCapabilities`** — `PR_CAPBSET_DROP` for every capability bit, clears
   ambient capabilities.
-- **`seccompDenials`** — the policy as data: which socket address families and
-  which whole syscalls are refused for a given `--keep-loopback` setting.
 - **`buildSeccompFilter`** — assembles an allow-by-default `libseccomp` filter
-  denying `AF_INET`/`AF_INET6`/`AF_PACKET` sockets and the core network
-  syscalls (`connect`, `bind`, `listen`, `accept`, `accept4`, `send*`,
-  `recv*`), without installing it. Building needs no namespace, so this is
-  where the tests read the policy back.
+  without installing it, delegating to `blockSocketFamilies`
+  (`AF_INET`/`AF_INET6`/`AF_PACKET`, by conditional rule on socket(2)'s family
+  argument) and `blockNetworkCalls` (`connect`, `bind`, `listen`, `accept`,
+  `accept4`, `send*`, `recv*`). Building needs no namespace, so this is where
+  the tests read the policy back.
 - **`installSeccomp`** — loads that filter into the current process, and
   panics if it will not load: a child that runs unfiltered is worse than one
   that does not run.
+- **`runAndExit`** / **`exitCode`** — where both stages end. The wrapped
+  program's status is offline's status; see "Exit status" below.
 
 ## Data flow
 
@@ -43,6 +51,21 @@ offline <cmd> [args]
     → runIsolated(): no-new-privs → drop caps → seccomp filter
       → exec <cmd> [args]
 ```
+
+## Exit status
+
+offline is a wrapper, so the wrapped program's status is what a caller sees:
+
+| Situation | Exit status |
+|---|---|
+| the program ran | its own exit code, unchanged |
+| the program was killed by a signal | `128 + signal`, the shells' convention |
+| offline could not run it, or was invoked wrong | `1`, with a reason on stderr |
+
+Both stages route through `runAndExit`, because the outer stage collapsing the
+status on the way back out would undo the inner stage's passthrough. Nothing is
+written to stderr for a program that ran and failed — that is its own business,
+and a wrapper adding a line to it would corrupt the program's output.
 
 ## Decisions
 
@@ -133,6 +156,7 @@ AppArmor/SELinux policies, or seccomp allowlist mode.
 
 ```
 offline.go       the sandbox wrapper (single file, package main)
+offline_test.go  pins the socket-family policy and the exit-status passthrough
 docs/            mkdocs documentation + GitHub Pages landing page (docs/index.html)
 examples/        runnable examples
 .github/         CI workflows, issue/PR templates, dependabot
