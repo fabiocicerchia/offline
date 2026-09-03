@@ -7,7 +7,9 @@ Guidance for Claude Code (and other AI agents) working in this repo.
 `offline` is a Linux sandbox wrapper, written in Go, that runs another
 program with its network access fully isolated (user/net/mount/PID/IPC/UTS
 namespaces + capability dropping + a seccomp filter blocking network
-syscalls). Single-file entry point: `offline.go` (`package main`).
+syscalls). Single-file entry point: `offline.go` (`package main`), with
+`offline_test.go` beside it pinning the socket-family policy and the
+exit-status passthrough.
 
 ## Commands
 

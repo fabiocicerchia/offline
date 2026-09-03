@@ -146,7 +146,8 @@ offline: blocked connect (pid 9)
 offline: blocked connect (pid 9)
 offline: blocked socket (pid 9)
 offline: blocked socket (pid 9)
-exit status 7
+$ echo $?
+7
 ```
 
 ```sh
@@ -169,10 +170,11 @@ The host refuses unprivileged user namespaces. Check
 `sysctl kernel.apparmor_restrict_unprivileged_userns`; a container runtime can
 also block the clone flags through its own seccomp profile.
 
-**`exit status N`**
-Not an offline failure — the wrapped program exited non-zero and offline
-relays that on stderr. `curl` returning 7 ("failed to connect") is the sandbox
-working.
+**A non-zero exit with nothing on stderr**
+Not an offline failure — that is the wrapped program's own status, passed
+through untouched. `curl` returning 7 ("failed to connect") is the sandbox
+working. offline writes to stderr only when it is itself the thing that
+failed, so anything on there is worth reading.
 
 ## Documentation
 
