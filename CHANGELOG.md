@@ -4,6 +4,13 @@ All notable changes to this project are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2](https://github.com/fabiocicerchia/offline/compare/v1.1.1...v1.1.2) (2026-09-04)
+
+
+### Bug Fixes
+
+* **ci:** pin the editorconfig-checker binary version ([#65](https://github.com/fabiocicerchia/offline/issues/65)) ([c0231eb](https://github.com/fabiocicerchia/offline/commit/c0231eb8857a6c5de920793a8b8ecb5265da8a7c))
+
 ## [Unreleased]
 
 ### Bug Fixes
