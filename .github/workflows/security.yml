@@ -62,7 +62,7 @@ jobs:
       # cannot even load the packages.
       - name: install libseccomp headers
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends pkg-config libseccomp-dev
-      - run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - run: go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
       - run: govulncheck ./...
 
   codeql:
