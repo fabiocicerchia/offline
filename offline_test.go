@@ -58,7 +58,7 @@ func TestExitCode(t *testing.T) {
 		{"exit 1", exitFailure},
 		{"kill -TERM $$", exitSignalBase + int(syscall.SIGTERM)},
 	} {
-		err := exec.Command("sh", "-c", tc.script).Run()
+		err := exec.CommandContext(t.Context(), "sh", "-c", tc.script).Run()
 
 		var exitErr *exec.ExitError
 		if !errors.As(err, &exitErr) {
@@ -107,7 +107,7 @@ func TestSandboxSurvivesTheEnvRoundTrip(t *testing.T) {
 // so the flags asserted on are the flags a user gets.
 func TestCommandLine(t *testing.T) {
 	bin := filepath.Join(t.TempDir(), "offline")
-	if out, err := exec.Command("go", "build", "-o", bin, ".").CombinedOutput(); err != nil {
+	if out, err := exec.CommandContext(t.Context(), "go", "build", "-o", bin, ".").CombinedOutput(); err != nil {
 		t.Fatalf("build: %v\n%s", err, out)
 	}
 
@@ -150,7 +150,7 @@ func TestCommandLine(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			cmd := exec.Command(bin, tc.args...)
+			cmd := exec.CommandContext(t.Context(), bin, tc.args...)
 			var stderr strings.Builder
 			cmd.Stderr = &stderr
 

@@ -23,6 +23,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -201,7 +202,10 @@ func reexecIsolated(s sandbox) {
 		panic(err)
 	}
 
-	cmd := exec.Command(self, flag.Args()...)
+	// Background, deliberately: the child owns its own lifetime. Cancelling
+	// from here would kill the sandboxed process instead of letting it see
+	// the signal itself.
+	cmd := exec.CommandContext(context.Background(), self, flag.Args()...)
 	cmd.Env = append(os.Environ(), s.env()...)
 	cmd.SysProcAttr = jailAttr()
 	wireStdio(cmd)
@@ -278,7 +282,10 @@ func runIsolated(s sandbox) {
 		os.Exit(exitFailure)
 	}
 
-	target := exec.Command(os.Args[targetArgv], os.Args[targetArgv+1:]...)
+	// As above: the isolated payload receives signals itself.
+	target := exec.CommandContext(
+		context.Background(), os.Args[targetArgv], os.Args[targetArgv+1:]...,
+	)
 	wireStdio(target)
 
 	runAndExit(target)
@@ -295,7 +302,7 @@ func bringUpLoopback() error {
 	}
 	// Best-effort, like the capability sweep: the fd is going away with this
 	// function either way, and a failed close has nothing to report to.
-	defer func() { _ = unix.Close(fd) }()
+	defer func() { _ = unix.Close(fd) }() //nolint:errcheck // see above: nothing to report a failed close to
 
 	ifr, err := unix.NewIfreq("lo")
 	if err != nil {
@@ -370,6 +377,8 @@ func exitCode(exitErr *exec.ExitError) int {
 func dropCapabilities() {
 	// Remove all inheritable/effective capabilities.
 	for capability := 0; capability <= capBoundLast; capability++ {
+		//nolint:errcheck // best-effort: a capability that will not drop is
+		// reported by the sweep as a whole, not per bit.
 		_ = unix.Prctl(
 			unix.PR_CAPBSET_DROP,
 			uintptr(capability),
@@ -380,6 +389,7 @@ func dropCapabilities() {
 	}
 
 	// Clear ambient capabilities.
+	//nolint:errcheck // as above
 	_ = unix.Prctl(
 		unix.PR_CAP_AMBIENT,
 		unix.PR_CAP_AMBIENT_CLEAR_ALL,
@@ -508,6 +518,8 @@ func logBlockedSyscalls(fd seccomp.ScmpFd) {
 		}
 		fmt.Fprintf(os.Stderr, "offline: blocked %s (pid %d)\n", name, req.Pid)
 
+		//nolint:errcheck // the supervised process is already being denied; a
+		// failed response leaves it blocked, which is the safe direction.
 		_ = seccomp.NotifRespond(fd, &seccomp.ScmpNotifResp{
 			ID:    req.ID,
 			Error: int32(syscall.EPERM),
