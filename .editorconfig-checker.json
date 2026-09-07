@@ -1,0 +1,9 @@
+{
+  "Exclude": [
+    "^LICENSE$",
+    "^README\\.md$"
+  ],
+  "Disable": {
+    "IndentSize": true
+  }
+}
