@@ -45,3 +45,15 @@ lint: ## Run all pre-commit checks on the whole tree
 .PHONY: test
 test: ## Run the test suite
 	go test ./...
+
+.PHONY: run
+run: ## Run the binary
+	go run . $(ARGS)
+
+.PHONY: format
+format: ## Rewrite the sources to gofmt form
+	gofmt -w .
+
+.PHONY: analyze
+analyze: ## Lint with the house rule set
+	golangci-lint run ./...
