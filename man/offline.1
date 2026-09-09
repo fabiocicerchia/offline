@@ -1,0 +1,51 @@
+.TH OFFLINE 1 "2026-09" "offline" "User Commands"
+.SH NAME
+offline \- run a program with its network access fully isolated
+.SH SYNOPSIS
+.B offline
+.RB [ \-\-keep\-loopback ]
+.RB [ \-\-log\-external ]
+.I program
+.RI [ args ...]
+.SH DESCRIPTION
+.B offline
+runs
+.I program
+with its network access fully isolated: private user, network, mount, IPC and
+UTS namespaces, an emptied capability set, and a seccomp filter refusing the
+network syscalls.
+.PP
+The program's exit status is mirrored back, so
+.B offline
+is transparent to a script that wraps it.
+.SH OPTIONS
+.TP
+.B \-\-keep\-loopback
+Keep the loopback interface (127.0.0.1) up and reachable. Useful for a test
+suite that talks to a server it started itself.
+.TP
+.B \-\-log\-external
+Log blocked network syscalls to standard error, rather than failing them
+silently.
+.SH EXIT STATUS
+The exit status of
+.IR program .
+.SH EXAMPLES
+.PP
+Run a test suite with no network at all:
+.PP
+.RS
+.B offline pytest \-q
+.RE
+.PP
+Allow a locally started server, and report what was blocked:
+.PP
+.RS
+.B offline \-\-keep\-loopback \-\-log\-external npm test
+.RE
+.SH SEE ALSO
+.BR unshare (1),
+.BR seccomp (2).
+Project documentation:
+.UR https://github.com/fabiocicerchia/offline
+.UE
