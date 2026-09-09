@@ -71,6 +71,38 @@ jobs:
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
       - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610  # v0.24.0
 
+      # offline links against libseccomp through cgo, so both targets need the
+      # library and arm64 needs a cross compiler as well. Ubuntu serves arm64
+      # packages from ports.ubuntu.com rather than archive.ubuntu.com, so the
+      # default sources are pinned to amd64 and a ports source is added for
+      # arm64 — without that split, `apt-get update` 404s on every arm64 index.
+      - name: Install the libseccomp toolchain
+        run: |
+          set -euo pipefail
+          . /etc/os-release   # VERSION_CODENAME
+          sudo dpkg --add-architecture arm64
+          # Restrict the stock sources to amd64, in whichever format this
+          # runner image uses, so apt does not look for arm64 indexes there.
+          if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+            sudo sed -i '/^Types: deb/a Architectures: amd64' \
+              /etc/apt/sources.list.d/ubuntu.sources
+          fi
+          if [ -s /etc/apt/sources.list ]; then
+            sudo sed -i 's/^deb \(\[[^]]*\] \)\?/deb [arch=amd64] /' \
+              /etc/apt/sources.list
+          fi
+          printf '%s\n' \
+            'Types: deb' \
+            'URIs: http://ports.ubuntu.com/ubuntu-ports' \
+            "Suites: ${VERSION_CODENAME} ${VERSION_CODENAME}-updates ${VERSION_CODENAME}-security" \
+            'Components: main universe' \
+            'Architectures: arm64' \
+            'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' \
+            | sudo tee /etc/apt/sources.list.d/arm64-ports.sources >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc-aarch64-linux-gnu libseccomp-dev libseccomp-dev:arm64
+
       # `--skip=publish` because the draft release already exists and this job
       # only attaches to it; `--skip=validate` because the tag it is building
       # does not exist until the draft is published, and GORELEASER_CURRENT_TAG

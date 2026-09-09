@@ -13,18 +13,33 @@ before:
   hooks:
     - go mod tidy
 
+# libseccomp is a C library and libseccomp-golang binds to it through cgo, so
+# CGO_ENABLED=0 excludes every file in that package and the build fails. The
+# link is static: it keeps one binary working across distros, and it saves the
+# deb/rpm/apk/Arch packages a libseccomp runtime dependency they would each
+# have to name differently.
 builds:
   - id: offline
     main: .
     binary: offline
     env:
-      - CGO_ENABLED=0
+      - CGO_ENABLED=1
     goos: [linux]
     goarch: [amd64, arm64]
     flags:
       - -trimpath
     ldflags:
       - -s -w -X main.version={{ .Version }}
+      - -linkmode external -extldflags "-static"
+    # The runner is amd64, so arm64 needs the cross compiler installed by the
+    # release workflow. Overrides replace `env` for that target rather than
+    # extending it, hence CGO_ENABLED is repeated.
+    overrides:
+      - goos: linux
+        goarch: arm64
+        env:
+          - CGO_ENABLED=1
+          - CC=aarch64-linux-gnu-gcc
     mod_timestamp: "{{ .CommitTimestamp }}"
 
 archives:
