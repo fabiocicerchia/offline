@@ -4,6 +4,13 @@ All notable changes to this project are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0](https://github.com/fabiocicerchia/offline/compare/v1.1.2...v1.2.0) (2026-09-08)
+
+
+### Features
+
+* add the eight-verb repo contract ([#69](https://github.com/fabiocicerchia/offline/issues/69)) ([67f2702](https://github.com/fabiocicerchia/offline/commit/67f2702086d28252febce090dfe8e5707b1b7586))
+
 ## [1.1.2](https://github.com/fabiocicerchia/offline/compare/v1.1.1...v1.1.2) (2026-09-04)
 
 
