@@ -4,6 +4,13 @@ All notable changes to this project are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0](https://github.com/fabiocicerchia/offline/compare/v1.2.0...v1.3.0) (2026-09-09)
+
+
+### Features
+
+* **packaging:** man page, OS packages and a staged install ([#73](https://github.com/fabiocicerchia/offline/issues/73)) ([f32b461](https://github.com/fabiocicerchia/offline/commit/f32b4611584bb250f1e31f79bee3ee6c7d331e97))
+
 ## [1.2.0](https://github.com/fabiocicerchia/offline/compare/v1.1.2...v1.2.0) (2026-09-08)
 
 
