@@ -138,11 +138,21 @@ type sandbox struct {
 	logExternal  bool
 }
 
+// envIsOn - Whether a re-exec variable is present and carries the single value
+// the three of them ever use. Every environment read in this program goes
+// through here, at startup, before anything acts on the result; os.LookupEnv
+// rather than os.Getenv so "unset" and "set to something unexpected" stay
+// distinguishable at the boundary.
+func envIsOn(key string) bool {
+	value, ok := os.LookupEnv(key)
+	return ok && value == envOn
+}
+
 // sandboxFromEnv - Reads the policy back on the far side of the re-exec.
 func sandboxFromEnv() sandbox {
 	return sandbox{
-		keepLoopback: os.Getenv(keepLoopbackEnv) == envOn,
-		logExternal:  os.Getenv(logExternalEnv) == envOn,
+		keepLoopback: envIsOn(keepLoopbackEnv),
+		logExternal:  envIsOn(logExternalEnv),
 	}
 }
 
@@ -176,7 +186,7 @@ func (s sandbox) blockedFamilies() []int {
 // main - Parses the flags and re-executes this binary inside fresh namespaces,
 // or runs the isolated stage when it is already inside them.
 func main() {
-	if os.Getenv(stageEnv) == envOn {
+	if envIsOn(stageEnv) {
 		runIsolated(sandboxFromEnv())
 		return
 	}
