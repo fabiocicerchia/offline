@@ -1,7 +1,8 @@
 {
   "Exclude": [
     "^LICENSE$",
-    "^README\\.md$"
+    "^apply\\-settings\\.sh$",
+    "^check\\-drift\\.sh$"
   ],
   "Disable": {
     "IndentSize": true
