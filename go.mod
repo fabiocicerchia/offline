@@ -8,6 +8,6 @@ go 1.26.0
 toolchain go1.26.5
 
 require (
-	github.com/seccomp/libseccomp-golang v0.11.1
+	github.com/seccomp/libseccomp-golang v0.12.0
 	golang.org/x/sys v0.48.0
 )
