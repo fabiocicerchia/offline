@@ -108,8 +108,13 @@ jobs:
             'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' \
             | sudo tee /etc/apt/sources.list.d/arm64-ports.sources >/dev/null
           sudo apt-get update
+          # libc6-dev:arm64 is not optional: gcc-aarch64-linux-gnu ships the
+          # compiler but only Recommends the target's libc headers, and this
+          # install runs --no-install-recommends. Without it the arm64 leg dies
+          # on `bits/libc-header-start.h: No such file or directory` while
+          # building runtime/cgo, long before it reaches libseccomp.
           sudo apt-get install -y --no-install-recommends \
-            gcc-aarch64-linux-gnu libseccomp-dev libseccomp-dev:arm64
+            gcc-aarch64-linux-gnu libc6-dev:arm64 libseccomp-dev libseccomp-dev:arm64
 
       # `--skip=publish` because the draft release already exists and this job
       # only attaches to it; `--skip=validate` because the tag it is building
