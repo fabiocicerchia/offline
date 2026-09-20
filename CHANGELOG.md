@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.2](https://github.com/fabiocicerchia/offline/compare/v1.5.1...v1.5.2) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** align codeql-action to v4.38.0 and read go version from go.mod ([#102](https://github.com/fabiocicerchia/offline/issues/102)) ([133913e](https://github.com/fabiocicerchia/offline/commit/133913ea21468f4fc7e0fb3c2cbfb3b9575df2a3))
+* **ci:** keep actions: read on the job that uploads sarif ([#101](https://github.com/fabiocicerchia/offline/issues/101)) ([60ba06c](https://github.com/fabiocicerchia/offline/commit/60ba06c9b6e883f2497a4cbd7b94cc6cc74a3d6c))
+
 ## [1.5.1](https://github.com/fabiocicerchia/offline/compare/v1.5.0...v1.5.1) (2026-09-11)
 
 
