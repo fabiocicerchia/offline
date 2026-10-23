@@ -1,0 +1,4 @@
+[default]
+# release-please links each CHANGELOG entry to its abbreviated commit SHA, and
+# typos reads hex like "60ba06c" as words ("ba" -> "by"); ignore only those labels.
+extend-ignore-re = ["\\[[0-9a-f]{7,40}\\]"]
