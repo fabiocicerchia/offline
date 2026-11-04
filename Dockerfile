@@ -6,7 +6,7 @@
 # --- build stage ---
 FROM golang:1.27-bookworm@sha256:69a7b9788769bec032d238959b61854e9ae87f57be9029ec04e9885fabf99195 AS build
 WORKDIR /src
-RUN apt-get update && apt-get install -y --no-install-recommends pkg-config libseccomp-dev \
+RUN apt-get update && apt-get install -y --no-install-recommends pkg-config=1.8.* libseccomp-dev=2.5.* \
  && rm -rf /var/lib/apt/lists/*
 COPY go.mod go.sum ./
 RUN go mod download
@@ -15,13 +15,14 @@ RUN CGO_ENABLED=1 go build -o offline offline.go
 
 # --- runtime stage ---
 FROM debian:bookworm-slim@sha256:3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da68e2e3687004faa906251
-RUN apt-get update && apt-get install -y --no-install-recommends libseccomp2 \
+RUN apt-get update && apt-get install -y --no-install-recommends libseccomp2=2.5.* \
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /src/offline /app/offline
 # hardener: run this image with `docker run --read-only` for a read-only rootfs
-# The hardener's other suggestion, `USER 10001`, is deliberately not applied:
-# offline creates user/net/mount/PID/IPC/UTS namespaces, this image is
-# documented as needing --privileged to do so, and CLAUDE.md treats the
-# privilege context as a security decision rather than a routine hardening.
+# Non-root: offline maps the caller's UID to root inside its own user
+# namespace, so it needs unprivileged user namespaces, not host root.
+USER 10001
+# A one-shot CLI wrapper, not a service: there is nothing to probe.
+HEALTHCHECK NONE
 ENTRYPOINT ["/app/offline"]

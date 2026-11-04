@@ -1,0 +1,6 @@
+# docs/ holds only the mkdocs site and its pinned requirements.txt, which makes
+# gandalf detect "python" here and run pytest, which reports "no tests ran" as a
+# failure: there is no Python code to test. Same skip as the root .gandalf.toml;
+# the Go code is covered by go_test at the repo root.
+[gandalf]
+skip = ["tests", "atheris"]
