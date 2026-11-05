@@ -6,6 +6,7 @@
 
 BIN    := offline
 BINDIR ?= $(HOME)/.local/bin
+USER_MANDIR ?= $(HOME)/.local/share/man/man1
 
 .DEFAULT_GOAL := help
 # help is pure output; the recipe echo would only be noise.
