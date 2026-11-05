@@ -10,9 +10,9 @@
 //	               EPERM/ENOSPC) skips straight past them
 //
 // So the tests here assert on what a function returns or on the rule set it
-// built, never on the state of this process. The one exception,
-// TestSandboxedProgram, runs the built binary end to end and skips on such a
-// host.
+// built, never on the state of this process. The exceptions run in a child:
+// TestSandboxedProgram runs the built binary end to end and skips on such a
+// host, and TestKernelEnforcesFilter loads the filter with only no-new-privs.
 package main
 
 import (
@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -265,6 +266,78 @@ func TestSandboxedProgram(t *testing.T) {
 			}
 			if !strings.Contains(stderr, tc.wantStderr) {
 				t.Errorf("stderr missing %q, got:\n%s", tc.wantStderr, stderr)
+			}
+		})
+	}
+}
+
+// filterProbeEnv switches TestFilterProbe into the program TestKernelEnforcesFilter
+// runs; its value names the sandbox flags to install the filter with.
+const filterProbeEnv = "OFFLINE_TEST_FILTER_PROBE"
+
+// TestFilterProbe - Not a test on its own: TestKernelEnforcesFilter re-runs
+// this test binary with filterProbeEnv set, and this is what runs inside. It
+// loads the real filter into itself through installSeccomp, then reports on
+// stdout what socket(2) returned for an IP and a unix socket.
+func TestFilterProbe(t *testing.T) {
+	mode, ok := os.LookupEnv(filterProbeEnv)
+	if !ok {
+		return
+	}
+
+	// The filter and no-new-privs are set on this thread; keep the probes on it.
+	runtime.LockOSThread()
+	if err := unix.Prctl(unix.PR_SET_NO_NEW_PRIVS, noNewPrivsOn, 0, 0, 0); err != nil {
+		panic(err)
+	}
+	installSeccomp(sandbox{
+		keepLoopback: strings.Contains(mode, "loopback"),
+		logExternal:  strings.Contains(mode, "logging"),
+	})
+
+	probe := func(family int) string {
+		fd, err := unix.Socket(family, unix.SOCK_STREAM, 0)
+		if err != nil {
+			return err.Error()
+		}
+		_ = unix.Close(fd)
+		return "ok"
+	}
+	fmt.Printf("inet=%s unix=%s\n", probe(unix.AF_INET), probe(unix.AF_UNIX))
+	os.Exit(0)
+}
+
+// TestKernelEnforcesFilter - The filter as the kernel enforces it, not as
+// libseccomp prints it. Loading a seccomp filter needs only no-new-privs, not a
+// user namespace, so this runs on hosts where TestSandboxedProgram skips.
+func TestKernelEnforcesFilter(t *testing.T) {
+	refused := syscall.EPERM.Error()
+
+	cases := []struct {
+		mode       string
+		wantStdout string
+		wantStderr string
+	}{
+		{"isolated", "inet=" + refused + " unix=ok", ""},
+		{"loopback", "inet=ok unix=ok", ""},
+		{"logging", "inet=" + refused + " unix=ok", "offline: blocked socket"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.mode, func(t *testing.T) {
+			cmd := exec.CommandContext(t.Context(), os.Args[0], "-test.run=^TestFilterProbe$")
+			cmd.Env = append(os.Environ(), filterProbeEnv+"="+tc.mode)
+			var stdout, stderr strings.Builder
+			cmd.Stdout, cmd.Stderr = &stdout, &stderr
+
+			if err := cmd.Run(); err != nil {
+				t.Fatalf("probe: %v\nstderr: %s", err, stderr.String())
+			}
+			if !strings.Contains(stdout.String(), tc.wantStdout) {
+				t.Errorf("stdout = %q, want %q", stdout.String(), tc.wantStdout)
+			}
+			if !strings.Contains(stderr.String(), tc.wantStderr) {
+				t.Errorf("stderr missing %q, got:\n%s", tc.wantStderr, stderr.String())
 			}
 		})
 	}
