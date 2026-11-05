@@ -10,11 +10,15 @@
 //	               EPERM/ENOSPC) skips straight past them
 //
 // So the tests here assert on what a function returns or on the rule set it
-// built, never on the state of this process.
+// built, never on the state of this process. The one exception,
+// TestSandboxedProgram, runs the built binary end to end and skips on such a
+// host.
 package main
 
 import (
 	"errors"
+	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -169,6 +173,98 @@ func TestCommandLine(t *testing.T) {
 				if !strings.Contains(stderr.String(), want) {
 					t.Errorf("stderr missing %q, got:\n%s", want, stderr.String())
 				}
+			}
+		})
+	}
+}
+
+// probeEnv switches TestLoopbackProbe from a no-op into the program the
+// end-to-end test runs inside the sandbox; probeBlocked is its exit code when
+// the network was refused.
+const (
+	probeEnv     = "OFFLINE_TEST_PROBE"
+	probeBlocked = 3
+)
+
+// TestLoopbackProbe - Not a test on its own: TestSandboxedProgram re-runs this
+// test binary under offline with probeEnv set, and this is what runs inside.
+// It opens a TCP listener on 127.0.0.1 and dials it, which needs socket(2),
+// bind, listen and connect, plus an interface that is up.
+func TestLoopbackProbe(t *testing.T) {
+	if os.Getenv(probeEnv) != envOn {
+		return
+	}
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(probeBlocked)
+	}
+	conn, err := net.Dial("tcp", ln.Addr().String())
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(probeBlocked)
+	}
+	_ = conn.Close()
+	_ = ln.Close()
+	os.Exit(0)
+}
+
+// TestSandboxedProgram - The user journey end to end: the real binary, both
+// stages, a real program inside. Needs unprivileged user namespaces, so a host
+// that refuses them skips rather than fails.
+func TestSandboxedProgram(t *testing.T) {
+	bin := filepath.Join(t.TempDir(), "offline")
+	if out, err := exec.CommandContext(t.Context(), "go", "build", "-o", bin, ".").CombinedOutput(); err != nil {
+		t.Fatalf("build: %v\n%s", err, out)
+	}
+
+	run := func(t *testing.T, args ...string) (int, string) {
+		t.Helper()
+		cmd := exec.CommandContext(t.Context(), bin, args...)
+		cmd.Env = append(os.Environ(), probeEnv+"="+envOn)
+		var stderr strings.Builder
+		cmd.Stderr = &stderr
+		_ = cmd.Run()
+		if cmd.ProcessState == nil {
+			t.Fatalf("%s did not run", bin)
+		}
+		return cmd.ProcessState.ExitCode(), stderr.String()
+	}
+
+	if code, stderr := run(t, "true"); code != 0 {
+		t.Skipf("cannot create the sandbox on this host (exit %d): %s", code, stderr)
+	}
+
+	// Bringing "lo" up needs CAP_NET_ADMIN inside the user namespace, which a
+	// host confining unprivileged namespaces (Ubuntu's AppArmor) withholds.
+	loopbackCode, loopbackErr := run(t, "--keep-loopback", "true")
+
+	probe := []string{os.Args[0], "-test.run=^TestLoopbackProbe$"}
+
+	cases := []struct {
+		name         string
+		args         []string
+		needLoopback bool
+		wantCode     int
+		wantStderr   string
+	}{
+		{"exit status passes through", []string{"sh", "-c", "exit 7"}, false, 7, ""},
+		{"network is refused", probe, false, probeBlocked, "operation not permitted"},
+		{"loopback is reachable when kept", append([]string{"--keep-loopback"}, probe...), true, 0, ""},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.needLoopback && loopbackCode != 0 {
+				t.Skipf("cannot bring loopback up on this host (exit %d): %s", loopbackCode, loopbackErr)
+			}
+			code, stderr := run(t, tc.args...)
+			if code != tc.wantCode {
+				t.Errorf("exit code = %d, want %d (stderr: %q)", code, tc.wantCode, stderr)
+			}
+			if !strings.Contains(stderr, tc.wantStderr) {
+				t.Errorf("stderr missing %q, got:\n%s", tc.wantStderr, stderr)
 			}
 		})
 	}
