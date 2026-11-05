@@ -5,6 +5,7 @@ package docs
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -58,6 +59,48 @@ func TestDocumentedFlagsMatchCode(t *testing.T) {
 		if !slices.Contains(defined, m[1]) {
 			t.Errorf("getting-started.md documents %s, which offline.go does not define", m[1])
 		}
+	}
+}
+
+// TestVerificationHolds - getting-started.md's Verification section promises
+// "only the loopback interface, no routes"; the real binary has to keep that
+// promise. /proc/net is per network namespace, so it answers without ip(8).
+// Needs unprivileged user namespaces, so a host that refuses them skips.
+func TestVerificationHolds(t *testing.T) {
+	if !strings.Contains(read(t, "getting-started.md"), "only the loopback interface, no routes") {
+		t.Fatal("getting-started.md no longer makes the promise this test checks")
+	}
+
+	bin := filepath.Join(t.TempDir(), "offline")
+	if out, err := exec.CommandContext(t.Context(), "go", "build", "-o", bin, "..").CombinedOutput(); err != nil {
+		t.Fatalf("build: %v\n%s", err, out)
+	}
+	if out, err := exec.CommandContext(t.Context(), bin, "true").CombinedOutput(); err != nil {
+		t.Skipf("cannot create the sandbox on this host (%v): %s", err, out)
+	}
+
+	cat := func(path string) []string {
+		t.Helper()
+		out, err := exec.CommandContext(t.Context(), bin, "cat", path).Output()
+		if err != nil {
+			t.Fatalf("offline cat %s: %v", path, err)
+		}
+		return strings.Split(strings.TrimSpace(string(out)), "\n")
+	}
+
+	// /proc/net/dev: two header lines, then one line per interface.
+	var ifaces []string
+	for _, line := range cat("/proc/net/dev")[2:] {
+		name, _, _ := strings.Cut(strings.TrimSpace(line), ":")
+		ifaces = append(ifaces, name)
+	}
+	if !slices.Equal(ifaces, []string{"lo"}) {
+		t.Errorf("interfaces inside the sandbox = %v, want [lo]", ifaces)
+	}
+
+	// /proc/net/route: a header line and nothing else.
+	if routes := cat("/proc/net/route")[1:]; len(routes) != 0 {
+		t.Errorf("routes inside the sandbox = %q, want none", routes)
 	}
 }
 
