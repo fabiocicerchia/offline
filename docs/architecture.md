@@ -155,7 +155,10 @@ AppArmor/SELinux policies, or seccomp allowlist mode.
 ## Project layout
 
 ```
-offline.go       the sandbox wrapper (single file, package main)
+offline.go       config, flags and the two stages (package main)
+seccomp.go       the network-blocking seccomp filter and its notify logger
+capabilities.go  bounding/ambient capability drop
+run.go           running the wrapped program and passing its exit status back
 offline_test.go  pins the socket-family policy and the exit-status passthrough
 docs/            mkdocs documentation + GitHub Pages landing page (docs/index.html)
 examples/        runnable examples

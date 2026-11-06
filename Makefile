@@ -29,7 +29,7 @@ setup: ## Install the pre-commit hook
 
 .PHONY: build
 build: ## Build the offline binary
-	go build -o $(BIN) offline.go
+	go build -o $(BIN) .
 
 .PHONY: install
 ## install: install the binary and its man page; PREFIX=/usr/local for a system path

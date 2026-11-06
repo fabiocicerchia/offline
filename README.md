@@ -111,7 +111,7 @@ curl -fsSL https://raw.githubusercontent.com/fabiocicerchia/offline/main/install
 **Build from source:**
 
 ```bash
-go build -o offline offline.go
+go build -o offline .
 # or
 make build
 ```
