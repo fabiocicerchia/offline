@@ -65,7 +65,7 @@ lint: ## Run all pre-commit checks on the whole tree
 .PHONY: test
 test: ## Run the test suite and write coverage.out
 	go test -coverprofile=coverage.out ./...
-	go tool cover -func=coverage.out | tail -n 1
+	cov=$$(go tool cover -func=coverage.out) && printf '%s\n' "$$cov" | tail -n 1
 
 .PHONY: run
 run: ## Run the binary
