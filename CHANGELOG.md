@@ -93,6 +93,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Bug Fixes
 
+* `make install` / `make uninstall` without `PREFIX` (and so `install.sh`)
+  no longer fail on the man page: `USER_MANDIR` now defaults to
+  `~/.local/share/man/man1`.
 * pass the wrapped program's exit status through the outer stage instead of
   collapsing every failure to `1`, and stop writing `exit status N` to the
   program's own stderr. A program killed by a signal now reports `128+signal`
