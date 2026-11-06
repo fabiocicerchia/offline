@@ -196,12 +196,12 @@ func TestLoopbackProbe(t *testing.T) {
 		return
 	}
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := new(net.ListenConfig).Listen(t.Context(), "tcp", "127.0.0.1:0")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(probeBlocked)
 	}
-	conn, err := net.Dial("tcp", ln.Addr().String())
+	conn, err := new(net.Dialer).DialContext(t.Context(), "tcp", ln.Addr().String())
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(probeBlocked)
@@ -288,7 +288,7 @@ func TestFilterProbe(t *testing.T) {
 	// The filter and no-new-privs are set on this thread; keep the probes on it.
 	runtime.LockOSThread()
 	if err := unix.Prctl(unix.PR_SET_NO_NEW_PRIVS, noNewPrivsOn, 0, 0, 0); err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	installSeccomp(sandbox{
 		keepLoopback: strings.Contains(mode, "loopback"),
