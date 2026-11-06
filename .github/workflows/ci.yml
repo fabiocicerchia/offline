@@ -42,3 +42,11 @@ jobs:
 
       - name: Test
         run: make test
+
+      - name: Coverage summary
+        run: |
+          {
+            echo '```'
+            go tool cover -func=coverage.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
