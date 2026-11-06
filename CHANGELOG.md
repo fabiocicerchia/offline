@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.3](https://github.com/fabiocicerchia/offline/compare/v1.5.2...v1.5.3) (2026-11-06)
+
+
+### Bug Fixes
+
+* `make install` and the one-line installer fail on the man page ([#120](https://github.com/fabiocicerchia/offline/issues/120)) ([908c78f](https://github.com/fabiocicerchia/offline/commit/908c78fcf07666ce8a472214eda612e16fdfce94))
+* 3 issues found by code-atlas (ci that cannot fail) ([#122](https://github.com/fabiocicerchia/offline/issues/122)) ([b6f140b](https://github.com/fabiocicerchia/offline/commit/b6f140bc917605766f38d7dbec9e17a5590f2e7e))
+* 4 issues found by code-atlas (quality gates) ([#117](https://github.com/fabiocicerchia/offline/issues/117)) ([b3b05dc](https://github.com/fabiocicerchia/offline/commit/b3b05dce2b75684d569e9e5824e121042366ba27))
+* 6 issues found by code-atlas (test suites) ([#123](https://github.com/fabiocicerchia/offline/issues/123)) ([de7226f](https://github.com/fabiocicerchia/offline/commit/de7226fc0f1d258f5b1d82ee3f63c28062832c80))
+* Single responsibility in the repository (+5.9 points) ([#121](https://github.com/fabiocicerchia/offline/issues/121)) ([e2c3159](https://github.com/fabiocicerchia/offline/commit/e2c3159faff4f2ced8bc0ac1c21a5211cf9ce11e))
+
 ## [1.5.2](https://github.com/fabiocicerchia/offline/compare/v1.5.1...v1.5.2) (2026-09-20)
 
 
