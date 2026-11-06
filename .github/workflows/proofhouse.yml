@@ -64,8 +64,7 @@ jobs:
               && PYTHONPATH=/gandalf/src python -m gandalf --no-llm --no-html --out-dir reports'
 
       - name: Post to proofhouse
-        # Telemetry. A dashboard being down is not this repository's problem.
-        continue-on-error: true
+        if: ${{ !cancelled() }}
         env:
           TOKEN: ${{ secrets.PROOFHOUSE_TOKEN }}
         run: |

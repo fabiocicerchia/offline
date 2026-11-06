@@ -38,8 +38,10 @@ jobs:
           github-token: ""
           skip-unchanged: "false"
 
+      # Dependabot and fork pull requests get no BONEYARD_TOKEN; skip them
+      # rather than fail, and let any other failure fail the run.
       - name: Post to boneyard
-        continue-on-error: true
+        if: github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository
         env:
           TOKEN: ${{ secrets.BONEYARD_TOKEN }}
           LABEL: "PR #${{ github.event.pull_request.number }}"
