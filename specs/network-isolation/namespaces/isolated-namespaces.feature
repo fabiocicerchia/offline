@@ -10,7 +10,8 @@ Feature: Running a program in its own isolated namespaces
     Given a program that lists the network interfaces it can see
     When the operator runs the program under offline
     Then the program sees no host network interface
-    And the program cannot reach the host's IPC objects or mounts
+    And the program cannot reach the host's IPC objects
+    And mounts made inside the sandbox do not appear on the host
     And changing the hostname inside the sandbox leaves the host's hostname unchanged
 
   @id:network-isolation.namespaces.002 @rule:network-isolation.namespaces.caller-is-root-inside @inferred @source:offline.go#singleIDMap

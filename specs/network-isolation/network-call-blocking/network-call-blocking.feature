@@ -3,7 +3,7 @@ Feature: Failing network calls immediately
   Serves operators who need a network attempt to fail at once with a readable error rather than hang until a timeout, and who need the run to stop if that protection cannot be put in place.
 
   Background:
-    Given Given the operator runs a program under offline
+    Given the operator runs a program under offline
 
   @id:network-isolation.network-call-blocking.001 @rule:isolation.calls.network-calls-refused-by-default @verified @source:seccomp.go#blockNetworkCalls @test:offline_test.go#TestFilterDeniesTheNetwork @test:offline_test.go#TestSandboxedProgram
   Scenario Outline: Network calls fail at once with a permission error by default
@@ -36,4 +36,5 @@ Feature: Failing network calls immediately
     Given the network filter cannot be loaded on this host
     When the operator runs a program under offline
     Then the wrapped program is never started
-    And offline exits with a failure status and reports the error on stderr
+    And a Go panic message with the error and a stack trace appear on stderr
+    And offline exits with status 2

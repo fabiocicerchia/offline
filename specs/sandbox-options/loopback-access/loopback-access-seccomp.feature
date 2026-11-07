@@ -3,7 +3,7 @@ Feature: Allowing local loopback traffic
   Serves operators whose program needs to talk to itself over 127.0.0.1/::1: one flag lifts the IP refusals so local traffic works, and the namespace keeps the outside world unreachable.
 
   Background:
-    Given Given the operator runs a program under offline
+    Given the operator runs a program under offline
 
   @id:sandbox-options.loopback-access.003 @rule:sandbox.loopback.ip-traffic-allowed @verified @source:seccomp.go#buildSeccompFilter @test:offline_test.go#TestFilterDeniesTheNetwork @test:offline_test.go#TestKernelEnforcesFilter @test:offline_test.go#TestSandboxedProgram
   Scenario: With loopback kept, the program can open IP sockets and talk over loopback

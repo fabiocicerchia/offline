@@ -3,7 +3,7 @@ Feature: Refusing network sockets
   Serves operators who run untrusted programs offline: the program cannot even create a socket that could reach a network, while local non-network sockets keep working.
 
   Background:
-    Given Given the operator runs a program under offline
+    Given the operator runs a program under offline
 
   @id:network-isolation.socket-blocking.001 @rule:isolation.sockets.network-families-refused-by-default @verified @source:seccomp.go#blockSocketFamilies @test:offline_test.go#TestBlockedFamilies @test:offline_test.go#TestFilterDeniesTheNetwork @test:offline_test.go#TestKernelEnforcesFilter @test:offline_test.go#TestSandboxedProgram
   Scenario Outline: IPv4, IPv6 and raw packet sockets are refused by default

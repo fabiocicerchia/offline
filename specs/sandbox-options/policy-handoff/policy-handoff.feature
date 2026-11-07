@@ -24,5 +24,5 @@ Feature: Carrying the chosen options into the sandbox
     Given the operator's shell environment already has _AIRGAP_KEEP_LOOPBACK set to 1
     When the operator runs "curl http://127.0.0.1:8080" under offline without --keep-loopback
     Then IP sockets are allowed inside the sandbox
-    And loopback stays down but no error says why
+    And loopback is brought up as if --keep-loopback had been given
     And nothing on stderr says that the sandbox was relaxed

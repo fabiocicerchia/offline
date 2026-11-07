@@ -16,4 +16,4 @@ Feature: Running offline from the container image
   Scenario: The container image runs offline as an unprivileged user, not root
     When the operator runs the image without overriding its user
     Then offline runs as user ID 10001
-    And offline does not run as root (user ID 0) on the host side of the container
+    And offline does not run as root (user ID 0) inside the container

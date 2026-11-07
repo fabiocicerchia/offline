@@ -10,7 +10,7 @@ Feature: Presenting the offline brand on the docs and splash page
     Given the site's accent pair is green #34d399 and teal #0ea5a5
     When a reader opens the splash page and then the docs
     Then the splash page title is drawn as a gradient from #34d399 to #0ea5a5
-    And the docs header and primary chrome use teal #0ea5a5
+    And the docs' primary colour, used for links and highlighted navigation, is teal #0ea5a5
     And changing the accent pair in one place changes both the splash page and the docs
 
   @id:docs.documentation-site.branding.002 @rule:docs.branding.links-legible-per-scheme @inferred @source:docs/stylesheets/extra.css#[data-md-color-scheme="slate"]
