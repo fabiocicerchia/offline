@@ -1,0 +1,219 @@
+{
+ "excluded": {
+  "stylesheets/extra": [
+   {
+    "candidate": "Home hero banner with gradient title, tagline and spaced buttons",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "docs/stylesheets/extra.css#.md-typeset .hero"
+   },
+   {
+    "candidate": "Feature cards with rounded border, hover lift and accent-coloured icons",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "docs/stylesheets/extra.css#.md-typeset .grid.cards > ul > li"
+   },
+   {
+    "candidate": "Pill-shaped buttons, gradient primary button, hover lift with an off-palette indigo shadow",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "docs/stylesheets/extra.css#.md-typeset .md-button"
+   },
+   {
+    "candidate": "Translucent blurred header with hairline divider and shadow on scroll",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "docs/stylesheets/extra.css#.md-header"
+   },
+   {
+    "candidate": "Navigation tabs dimmed until hovered or active",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-tabs__link"
+   },
+   {
+    "candidate": "Sidebar title and active link weights",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-nav__title"
+   },
+   {
+    "candidate": "Footer background, top border and muted link colour",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-footer-meta"
+   },
+   {
+    "candidate": "Heading weights, letter-spacing and kerning/ligatures",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-typeset h1"
+   },
+   {
+    "candidate": "Rounded, bordered code blocks",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-typeset .highlight"
+   },
+   {
+    "candidate": "Smooth scrolling to anchors",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#html"
+   }
+  ]
+ },
+ "lifted": {
+  "stylesheets/extra": [
+   {
+    "from_source": "mkdocs.yml#theme",
+    "rule": "docs.assets.system-fonts-only"
+   }
+  ]
+ },
+ "retired": [],
+ "scenarios": {
+  "docs.documentation-site.branding.001": {
+   "file": "docs/specs/documentation-site/branding/docs-branding.feature",
+   "fingerprint": "844f5ae5b318",
+   "human": false,
+   "rule": "docs.branding.shared-accent-palette",
+   "source": "docs/stylesheets/extra.css#:root",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "docs.documentation-site.branding.002": {
+   "file": "docs/specs/documentation-site/branding/docs-branding.feature",
+   "fingerprint": "433084a194b6",
+   "human": false,
+   "rule": "docs.branding.links-legible-per-scheme",
+   "source": "docs/stylesheets/extra.css#[data-md-color-scheme=\"slate\"]",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "docs.documentation-site.branding.003": {
+   "file": "docs/specs/documentation-site/branding/docs-branding.feature",
+   "fingerprint": "c702704e5aae",
+   "human": false,
+   "rule": "docs.branding.no-borrowed-logo",
+   "source": "docs/stylesheets/extra.css#.md-header__button.md-logo",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "docs.documentation-site.content-styling.001": {
+   "file": "docs/specs/documentation-site/content-styling/docs-content-styling.feature",
+   "fingerprint": "721086d36c47",
+   "human": false,
+   "rule": "docs.content.wide-tables-not-clipped",
+   "source": "docs/stylesheets/extra.css#.md-typeset table:not([class])",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "docs.documentation-site.offline-assets.001": {
+   "file": "docs/specs/documentation-site/offline-assets/docs-self-contained-assets.feature",
+   "fingerprint": "844f5ae5b318",
+   "human": false,
+   "rule": "docs.assets.system-fonts-only",
+   "source": "docs/stylesheets/extra.css#:root",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  }
+ },
+ "taxonomy": {
+  "domains": [
+   {
+    "areas": [
+     {
+      "description": "Placing the program in its own user, network, mount, PID, IPC and UTS namespaces.",
+      "slug": "isolation",
+      "title": "Namespace isolation"
+     },
+     {
+      "description": "Seccomp filter that refuses socket families and network system calls.",
+      "slug": "syscall-filter",
+      "title": "Network syscall blocking"
+     },
+     {
+      "description": "Removing capabilities so the sandboxed program cannot regain network access.",
+      "slug": "privileges",
+      "title": "Privilege dropping"
+     }
+    ],
+    "description": "Running a program with its network access fully cut off from the host.",
+    "slug": "sandboxing",
+    "title": "Network sandboxing"
+   },
+   {
+    "areas": [
+     {
+      "description": "Flags, configuration and the program-plus-arguments invocation.",
+      "slug": "command-line",
+      "title": "Command line"
+     },
+     {
+      "description": "Returning the wrapped program's exit code and signals to the caller.",
+      "slug": "exit-status",
+      "title": "Exit status passthrough"
+     }
+    ],
+    "description": "How users launch a command inside the sandbox and get its result back.",
+    "slug": "running-programs",
+    "title": "Running programs"
+   },
+   {
+    "areas": [
+     {
+      "description": "Accent colour palette, logo, light and dark schemes shared by the docs and the splash page.",
+      "slug": "branding",
+      "title": "Branding and theme"
+     },
+     {
+      "description": "Header, tabs, sidebar navigation and footer styling.",
+      "slug": "page-layout",
+      "title": "Page layout and navigation"
+     },
+     {
+      "description": "Typography, code blocks, tables and buttons within doc pages.",
+      "slug": "content-styling",
+      "title": "Content styling"
+     },
+     {
+      "description": "Hero banner and feature cards that introduce the product.",
+      "slug": "home-page",
+      "title": "Home page"
+     },
+     {
+      "description": "Docs render with system fonts and no CDN, web font or analytics fetched over the network.",
+      "slug": "offline-assets",
+      "title": "Self-contained assets"
+     }
+    ],
+    "description": "The published docs and landing page and how they look and read.",
+    "slug": "documentation-site",
+    "title": "Documentation site"
+   },
+   {
+    "areas": [
+     {
+      "description": "Compiling the binary and installing it with its man page.",
+      "slug": "build-install",
+      "title": "Build and install"
+     },
+     {
+      "description": "Pre-commit hooks, tests, linting and CI gating.",
+      "slug": "quality-checks",
+      "title": "Quality checks"
+     }
+    ],
+    "description": "Building, testing, linting and installing the project.",
+    "slug": "developer-tooling",
+    "title": "Developer tooling"
+   }
+  ]
+ }
+}
