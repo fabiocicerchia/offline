@@ -1,0 +1,795 @@
+{
+ "excluded": {
+  "offline/capabilities": [
+   {
+    "candidate": "Bounding-set sweep iterates 0..63 instead of stopping at the kernel's CAP_LAST_CAP, ignoring EINVAL for unknown bits",
+    "covered_by": "network-isolation.privilege-dropping.no-capabilities-in-sandbox",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "offline.go#capBoundLast"
+   },
+   {
+    "candidate": "Ambient set cleared with PR_CAP_AMBIENT_CLEAR_ALL as a separate call",
+    "covered_by": "network-isolation.privilege-dropping.no-capabilities-in-sandbox",
+    "reason": "DUPLICATE_OF",
+    "source": "capabilities.go#dropCapabilities"
+   },
+   {
+    "candidate": "An already-emptied set from an outer sandbox (EINVAL) is tolerated",
+    "covered_by": "network-isolation.privilege-dropping.drop-failure-not-reported",
+    "reason": "DUPLICATE_OF",
+    "source": "capabilities.go#dropCapabilities"
+   }
+  ],
+  "offline/dockerfile": [
+   {
+    "candidate": "Multi-stage build: compile in golang image, ship in debian-slim runtime",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Dockerfile#build"
+   },
+   {
+    "candidate": "Base images pinned by sha256 digest",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Dockerfile#FROM"
+   },
+   {
+    "candidate": "apt packages pinned to pkg-config 1.8.*, libseccomp-dev 2.5.*, libseccomp2 2.5.* and apt lists removed",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Dockerfile#RUN"
+   },
+   {
+    "candidate": "Binary built with CGO_ENABLED=1 against libseccomp",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Dockerfile#RUN"
+   },
+   {
+    "candidate": "Runtime image ships only libseccomp2 as a runtime dependency",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Dockerfile#RUN"
+   },
+   {
+    "candidate": "HEALTHCHECK NONE (one-shot CLI, nothing to probe)",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Dockerfile#HEALTHCHECK"
+   },
+   {
+    "candidate": "Recommendation to run with --read-only root filesystem (comment only, not enforced)",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "Dockerfile#USER"
+   },
+   {
+    "candidate": "WORKDIR /app working directory",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "Dockerfile#WORKDIR"
+   }
+  ],
+  "offline/install": [
+   {
+    "candidate": "Clone is shallow (--depth 1)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "install.sh:14"
+   },
+   {
+    "candidate": "Binary and man page placement, PREFIX/BINDIR handling performed by make install",
+    "covered_by": "belongs to installation/local-install (Makefile module); installer only delegates",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "Makefile:36-45"
+   },
+   {
+    "candidate": "Installer always tracks the upstream default branch with no tag/commit pinning or signature check",
+    "covered_by": "no code enforces a version or integrity rule; nothing to specify",
+    "reason": "UNVERIFIABLE",
+    "source": "install.sh:12-14"
+   }
+  ],
+  "offline/makefile": [
+   {
+    "candidate": "make build compiles the offline binary",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#build"
+   },
+   {
+    "candidate": "make test runs go test with coverage and prints the total",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#test"
+   },
+   {
+    "candidate": "make lint runs pre-commit on all files",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#lint"
+   },
+   {
+    "candidate": "make format rewrites sources with gofmt",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#format"
+   },
+   {
+    "candidate": "make analyze runs golangci-lint",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#analyze"
+   },
+   {
+    "candidate": "make run executes the binary via go run with ARGS",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "Makefile#run"
+   },
+   {
+    "candidate": "make setup installs the pre-commit hook",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "Makefile#setup"
+   },
+   {
+    "candidate": "help output is silenced of recipe echo and coloured with ANSI codes",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "Makefile#help"
+   },
+   {
+    "candidate": "install builds the binary before copying it",
+    "covered_by": "installation.local-install.per-user-default",
+    "reason": "DUPLICATE_OF",
+    "source": "Makefile#install"
+   }
+  ],
+  "offline/offline": [
+   {
+    "candidate": "Two-stage re-exec of the same binary with an _AIRGAP_STAGE marker",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "offline.go#main"
+   },
+   {
+    "candidate": "Stage 2 prints 'offline: no program to run' and exits 1 when argv is empty",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "offline.go#runIsolated"
+   },
+   {
+    "candidate": "Panic when os.Executable or prctl(PR_SET_NO_NEW_PRIVS) fails",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "offline.go#reexecIsolated"
+   },
+   {
+    "candidate": "Order of setup steps: no-new-privs, then loopback, capabilities, seccomp",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "offline.go#runIsolated"
+   },
+   {
+    "candidate": "Capability bounding-set sweep up to 63",
+    "covered_by": "enforced in capabilities.go, outside this module",
+    "reason": "UNVERIFIABLE",
+    "source": "offline.go#capBoundLast"
+   },
+   {
+    "candidate": "connect/bind/listen/accept/send/recv denied with EPERM",
+    "covered_by": "enforced in seccomp.go, outside this module",
+    "reason": "UNVERIFIABLE",
+    "source": "offline.go#blockedNetworkCalls"
+   },
+   {
+    "candidate": "--log-external reports refused calls on stderr",
+    "covered_by": "enforced in seccomp.go, outside this module",
+    "reason": "UNVERIFIABLE",
+    "source": "offline.go#main"
+   },
+   {
+    "candidate": "Exit status and signal deaths passed through as 128+signal",
+    "covered_by": "enforced in run.go#runAndExit, outside this module",
+    "reason": "UNVERIFIABLE",
+    "source": "offline.go#exitSignalBase"
+   },
+   {
+    "candidate": "Wrapped program's stdin/stdout/stderr are the caller's",
+    "covered_by": "enforced in run.go#wireStdio, outside this module",
+    "reason": "UNVERIFIABLE",
+    "source": "offline.go#reexecIsolated"
+   },
+   {
+    "candidate": "Signals reach the sandboxed program itself, as the context is never cancelled",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "offline.go#reexecIsolated"
+   },
+   {
+    "candidate": "Raw packet sockets are always refused and IP sockets are refused unless loopback is kept",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "offline.go#sandbox.blockedFamilies"
+   }
+  ],
+  "offline/run": [
+   {
+    "candidate": "Both stages route the status through the same function so the outer stage does not collapse the inner one's code",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "run.go#runAndExit"
+   },
+   {
+    "candidate": "A -1 exit code without a signal wait status falls back to exit 1",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "run.go#exitCode"
+   },
+   {
+    "candidate": "Successful run returns to the caller instead of exiting",
+    "covered_by": "execution.exit-status.code-passes-through",
+    "reason": "DUPLICATE_OF",
+    "source": "run.go#runAndExit"
+   }
+  ],
+  "offline/seccomp": [
+   {
+    "candidate": "Filter defaults to allow and denies only by exception (no syscall allowlist)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "seccomp.go#buildSeccompFilter"
+   },
+   {
+    "candidate": "Filter is built separately from being loaded so tests can export the policy",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "seccomp.go#buildSeccompFilter"
+   },
+   {
+    "candidate": "Network calls the running architecture lacks are skipped",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "seccomp.go#blockNetworkCalls"
+   },
+   {
+    "candidate": "A syscall whose name cannot be resolved is logged as syscall#<n>",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "seccomp.go#logBlockedSyscalls"
+   },
+   {
+    "candidate": "Logging combined with --keep-loopback reports only raw packet socket attempts",
+    "covered_by": "sandbox.logging.blocked-calls-reported-and-denied",
+    "reason": "DUPLICATE_OF",
+    "source": "seccomp.go#buildSeccompFilter"
+   },
+   {
+    "candidate": "Logging listener stops when the notification channel closes at target exit",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "seccomp.go#logBlockedSyscalls"
+   },
+   {
+    "candidate": "A failed notification response leaves the call blocked",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "seccomp.go#logBlockedSyscalls"
+   }
+  ]
+ },
+ "lifted": {
+  "offline/capabilities": [],
+  "offline/dockerfile": [
+   {
+    "from_source": "Dockerfile#USER",
+    "rule": "installation.container-image.runs-as-non-root"
+   }
+  ],
+  "offline/install": [],
+  "offline/makefile": [],
+  "offline/offline": [],
+  "offline/run": [],
+  "offline/seccomp": []
+ },
+ "retired": [],
+ "scenarios": {
+  "developer-tooling.contributor-setup.001": {
+   "file": "specs/developer-tooling/contributor-setup/make-help.feature",
+   "fingerprint": "175f8fca0ba4",
+   "human": false,
+   "rule": "developer-tooling.help.lists-targets-by-default",
+   "source": "Makefile#help",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "installation.container-image.001": {
+   "file": "specs/installation/container-image/container-image.feature",
+   "fingerprint": "105f3e5b0648",
+   "human": false,
+   "rule": "installation.container-image.entrypoint-is-offline",
+   "source": "Dockerfile#ENTRYPOINT",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "installation.container-image.002": {
+   "file": "specs/installation/container-image/container-image.feature",
+   "fingerprint": "59d0f94bfbad",
+   "human": false,
+   "rule": "installation.container-image.runs-as-non-root",
+   "source": "Dockerfile#USER",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "installation.local-install.001": {
+   "file": "specs/installation/local-install/local-install.feature",
+   "fingerprint": "112e2be550a9",
+   "human": false,
+   "rule": "installation.local-install.per-user-default",
+   "source": "Makefile#install",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "installation.local-install.002": {
+   "file": "specs/installation/local-install/local-install.feature",
+   "fingerprint": "112e2be550a9",
+   "human": false,
+   "rule": "installation.local-install.system-prefix",
+   "source": "Makefile#install",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "installation.local-install.003": {
+   "file": "specs/installation/local-install/local-install.feature",
+   "fingerprint": "95efe0f7efc1",
+   "human": false,
+   "rule": "installation.local-install.uninstall-removes-installed-files",
+   "source": "Makefile#uninstall",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "installation.one-line-installer.001": {
+   "file": "specs/installation/one-line-installer/one-line-installer.feature",
+   "fingerprint": "10e2556ec322",
+   "human": false,
+   "rule": "installation.installer.fresh-install-clones-and-installs",
+   "source": "install.sh#REPO_DIR",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "installation.one-line-installer.002": {
+   "file": "specs/installation/one-line-installer/one-line-installer.feature",
+   "fingerprint": "10e2556ec322",
+   "human": false,
+   "rule": "installation.installer.updates-existing-checkout",
+   "source": "install.sh#REPO_DIR",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "installation.one-line-installer.003": {
+   "file": "specs/installation/one-line-installer/one-line-installer.feature",
+   "fingerprint": "10e2556ec322",
+   "human": false,
+   "rule": "installation.installer.stops-on-failed-step",
+   "source": "install.sh#REPO_DIR",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "network-isolation.namespaces.001": {
+   "file": "specs/network-isolation/namespaces/isolated-namespaces.feature",
+   "fingerprint": "49554ee618c7",
+   "human": false,
+   "rule": "network-isolation.namespaces.private-namespace-set",
+   "source": "offline.go#jailAttr",
+   "status": "verified",
+   "test": "offline_test.go#TestSandboxedProgram",
+   "tests": [
+    "offline_test.go#TestSandboxedProgram"
+   ]
+  },
+  "network-isolation.namespaces.002": {
+   "file": "specs/network-isolation/namespaces/isolated-namespaces.feature",
+   "fingerprint": "156712763aea",
+   "human": false,
+   "rule": "network-isolation.namespaces.caller-is-root-inside",
+   "source": "offline.go#singleIDMap",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "network-isolation.namespaces.003": {
+   "file": "specs/network-isolation/namespaces/isolated-namespaces.feature",
+   "fingerprint": "442205e756dd",
+   "human": false,
+   "rule": "network-isolation.namespaces.host-process-view-kept",
+   "source": "offline.go#jailNamespaces",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "network-isolation.namespaces.004": {
+   "file": "specs/network-isolation/namespaces/isolated-namespaces.feature",
+   "fingerprint": "4c7e335b8b2f",
+   "human": false,
+   "rule": "network-isolation.namespaces.fails-closed-without-namespaces",
+   "source": "offline.go#reexecIsolated",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "network-isolation.network-call-blocking.001": {
+   "file": "specs/network-isolation/network-call-blocking/network-call-blocking.feature",
+   "fingerprint": "c4a79a6b557d",
+   "human": false,
+   "rule": "isolation.calls.network-calls-refused-by-default",
+   "source": "seccomp.go#blockNetworkCalls",
+   "status": "verified",
+   "test": "offline_test.go#TestFilterDeniesTheNetwork",
+   "tests": [
+    "offline_test.go#TestFilterDeniesTheNetwork",
+    "offline_test.go#TestSandboxedProgram"
+   ]
+  },
+  "network-isolation.network-call-blocking.002": {
+   "file": "specs/network-isolation/network-call-blocking/network-call-blocking.feature",
+   "fingerprint": "c4a79a6b557d",
+   "human": false,
+   "rule": "isolation.calls.local-socket-connections-refused",
+   "source": "seccomp.go#blockNetworkCalls",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "network-isolation.network-call-blocking.003": {
+   "file": "specs/network-isolation/network-call-blocking/network-call-blocking.feature",
+   "fingerprint": "2901a06f14ce",
+   "human": false,
+   "rule": "isolation.calls.no-run-without-filter",
+   "source": "seccomp.go#installSeccomp",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "network-isolation.privilege-dropping.001": {
+   "file": "specs/network-isolation/privilege-dropping/privilege-dropping.feature",
+   "fingerprint": "7eb5538e3bd3",
+   "human": false,
+   "rule": "network-isolation.privilege-dropping.no-capabilities-in-sandbox",
+   "source": "capabilities.go#dropCapabilities",
+   "status": "verified",
+   "test": "offline_test.go#TestCapabilitySweepCoversKernelRange",
+   "tests": [
+    "offline_test.go#TestCapabilitySweepCoversKernelRange"
+   ]
+  },
+  "network-isolation.privilege-dropping.002": {
+   "file": "specs/network-isolation/privilege-dropping/privilege-dropping.feature",
+   "fingerprint": "7eb5538e3bd3",
+   "human": false,
+   "rule": "network-isolation.privilege-dropping.drop-failure-not-reported",
+   "source": "capabilities.go#dropCapabilities",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "network-isolation.privilege-dropping.003": {
+   "file": "specs/network-isolation/privilege-dropping/privilege-dropping-offline.feature",
+   "fingerprint": "729f678c8c86",
+   "human": false,
+   "rule": "network-isolation.privilege-dropping.no-setuid-escalation",
+   "source": "offline.go#runIsolated",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "network-isolation.socket-blocking.001": {
+   "file": "specs/network-isolation/socket-blocking/socket-family-blocking.feature",
+   "fingerprint": "a0bd5f81c489",
+   "human": false,
+   "rule": "isolation.sockets.network-families-refused-by-default",
+   "source": "seccomp.go#blockSocketFamilies",
+   "status": "verified",
+   "test": "offline_test.go#TestBlockedFamilies",
+   "tests": [
+    "offline_test.go#TestBlockedFamilies",
+    "offline_test.go#TestFilterDeniesTheNetwork",
+    "offline_test.go#TestKernelEnforcesFilter",
+    "offline_test.go#TestSandboxedProgram"
+   ]
+  },
+  "network-isolation.socket-blocking.002": {
+   "file": "specs/network-isolation/socket-blocking/socket-family-blocking.feature",
+   "fingerprint": "a0bd5f81c489",
+   "human": false,
+   "rule": "isolation.sockets.raw-packet-always-refused",
+   "source": "seccomp.go#blockSocketFamilies",
+   "status": "verified",
+   "test": "offline_test.go#TestBlockedFamilies",
+   "tests": [
+    "offline_test.go#TestBlockedFamilies",
+    "offline_test.go#TestFilterDeniesTheNetwork"
+   ]
+  },
+  "network-isolation.socket-blocking.003": {
+   "file": "specs/network-isolation/socket-blocking/socket-family-blocking.feature",
+   "fingerprint": "b15b92c5884a",
+   "human": false,
+   "rule": "isolation.sockets.local-sockets-creatable",
+   "source": "seccomp.go#buildSeccompFilter",
+   "status": "verified",
+   "test": "offline_test.go#TestKernelEnforcesFilter",
+   "tests": [
+    "offline_test.go#TestKernelEnforcesFilter"
+   ]
+  },
+  "program-execution.command-line.001": {
+   "file": "specs/program-execution/command-line/command-line.feature",
+   "fingerprint": "52d5e6e14f20",
+   "human": false,
+   "rule": "program-execution.command-line.usage-and-refusals",
+   "source": "offline.go#main",
+   "status": "verified",
+   "test": "offline_test.go#TestCommandLine",
+   "tests": [
+    "offline_test.go#TestCommandLine"
+   ]
+  },
+  "program-execution.command-line.002": {
+   "file": "specs/program-execution/command-line/command-line.feature",
+   "fingerprint": "4c7e335b8b2f",
+   "human": false,
+   "rule": "program-execution.command-line.args-after-program-untouched",
+   "source": "offline.go#reexecIsolated",
+   "status": "verified",
+   "test": "offline_test.go#TestSandboxedProgram",
+   "tests": [
+    "offline_test.go#TestSandboxedProgram"
+   ]
+  },
+  "program-execution.exit-status.001": {
+   "file": "specs/program-execution/exit-status/exit-status-passthrough.feature",
+   "fingerprint": "5d5bad44c2bc",
+   "human": false,
+   "rule": "execution.exit-status.code-passes-through",
+   "source": "run.go#runAndExit",
+   "status": "verified",
+   "test": "offline_test.go#TestExitCode",
+   "tests": [
+    "offline_test.go#TestExitCode",
+    "offline_test.go#TestSandboxedProgram"
+   ]
+  },
+  "program-execution.exit-status.002": {
+   "file": "specs/program-execution/exit-status/exit-status-passthrough.feature",
+   "fingerprint": "f6082c627668",
+   "human": false,
+   "rule": "execution.exit-status.signal-death-is-128-plus-signal",
+   "source": "run.go#exitCode",
+   "status": "verified",
+   "test": "offline_test.go#TestExitCode",
+   "tests": [
+    "offline_test.go#TestExitCode"
+   ]
+  },
+  "program-execution.exit-status.003": {
+   "file": "specs/program-execution/exit-status/exit-status-passthrough.feature",
+   "fingerprint": "5d5bad44c2bc",
+   "human": false,
+   "rule": "execution.exit-status.unrunnable-program-is-reported",
+   "source": "run.go#runAndExit",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "program-execution.terminal-io.001": {
+   "file": "specs/program-execution/terminal-io/terminal-io.feature",
+   "fingerprint": "17aff7954266",
+   "human": false,
+   "rule": "execution.terminal-io.streams-are-the-callers",
+   "source": "run.go#wireStdio",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "sandbox-options.blocked-call-logging.001": {
+   "file": "specs/sandbox-options/blocked-call-logging/blocked-call-logging.feature",
+   "fingerprint": "fa681e985370",
+   "human": false,
+   "rule": "sandbox.logging.blocked-calls-reported-and-denied",
+   "source": "seccomp.go#logBlockedSyscalls",
+   "status": "verified",
+   "test": "offline_test.go#TestKernelEnforcesFilter",
+   "tests": [
+    "offline_test.go#TestKernelEnforcesFilter",
+    "offline_test.go#TestFilterDeniesTheNetwork"
+   ]
+  },
+  "sandbox-options.loopback-access.001": {
+   "file": "specs/sandbox-options/loopback-access/loopback-access.feature",
+   "fingerprint": "8a7e59c63f31",
+   "human": false,
+   "rule": "sandbox-options.loopback-access.loopback-up-when-kept",
+   "source": "offline.go#bringUpLoopback",
+   "status": "verified",
+   "test": "offline_test.go#TestSandboxedProgram",
+   "tests": [
+    "offline_test.go#TestSandboxedProgram"
+   ]
+  },
+  "sandbox-options.loopback-access.002": {
+   "file": "specs/sandbox-options/loopback-access/loopback-access.feature",
+   "fingerprint": "729f678c8c86",
+   "human": false,
+   "rule": "sandbox-options.loopback-access.loopback-failure-aborts-before-program",
+   "source": "offline.go#runIsolated",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "sandbox-options.loopback-access.003": {
+   "file": "specs/sandbox-options/loopback-access/loopback-access-seccomp.feature",
+   "fingerprint": "b15b92c5884a",
+   "human": false,
+   "rule": "sandbox.loopback.ip-traffic-allowed",
+   "source": "seccomp.go#buildSeccompFilter",
+   "status": "verified",
+   "test": "offline_test.go#TestFilterDeniesTheNetwork",
+   "tests": [
+    "offline_test.go#TestFilterDeniesTheNetwork",
+    "offline_test.go#TestKernelEnforcesFilter",
+    "offline_test.go#TestSandboxedProgram"
+   ]
+  },
+  "sandbox-options.policy-handoff.001": {
+   "file": "specs/sandbox-options/policy-handoff/policy-handoff.feature",
+   "fingerprint": "b7c6e8445561",
+   "human": false,
+   "rule": "sandbox-options.policy-handoff.options-reach-isolated-stage",
+   "source": "offline.go#sandboxFromEnv",
+   "status": "verified",
+   "test": "offline_test.go#TestSandboxSurvivesTheEnvRoundTrip",
+   "tests": [
+    "offline_test.go#TestSandboxSurvivesTheEnvRoundTrip"
+   ]
+  },
+  "sandbox-options.policy-handoff.002": {
+   "file": "specs/sandbox-options/policy-handoff/policy-handoff.feature",
+   "fingerprint": "4c7e335b8b2f",
+   "human": false,
+   "rule": "sandbox-options.policy-handoff.inherited-markers-relax-sandbox",
+   "source": "offline.go#reexecIsolated",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  }
+ },
+ "taxonomy": {
+  "domains": [
+   {
+    "areas": [
+     {
+      "description": "Runs the program in fresh user, network, mount, PID, IPC and UTS namespaces, with the caller's own ID mapped to root inside.",
+      "slug": "namespaces",
+      "title": "Isolated namespaces"
+     },
+     {
+      "description": "Refuses to create IPv4, IPv6 and raw packet sockets, so the program cannot open a network connection.",
+      "slug": "socket-blocking",
+      "title": "Socket family blocking"
+     },
+     {
+      "description": "Denies connect, bind, listen, accept, send and receive calls outright, so they fail at once with a permission error instead of hanging.",
+      "slug": "network-call-blocking",
+      "title": "Network call blocking"
+     },
+     {
+      "description": "Removes every capability from the sandboxed process so it cannot undo or escape the isolation.",
+      "slug": "privilege-dropping",
+      "title": "Privilege dropping"
+     }
+    ],
+    "description": "The guarantees that keep a wrapped program from reaching any network.",
+    "slug": "network-isolation",
+    "title": "Network isolation"
+   },
+   {
+    "areas": [
+     {
+      "description": "An opt-in flag that brings up 127.0.0.1/::1 and allows local IP traffic, while raw packet sockets stay blocked.",
+      "slug": "loopback-access",
+      "title": "Loopback access"
+     },
+     {
+      "description": "An opt-in flag that reports each refused network call on stderr instead of failing it silently.",
+      "slug": "blocked-call-logging",
+      "title": "Blocked call logging"
+     },
+     {
+      "description": "Passes the chosen options from the launcher into the isolated stage reliably, accepting only the exact expected values.",
+      "slug": "policy-handoff",
+      "title": "Policy handoff"
+     }
+    ],
+    "description": "The settings a user can change to loosen or watch the isolation.",
+    "slug": "sandbox-options",
+    "title": "Sandbox options"
+   },
+   {
+    "areas": [
+     {
+      "description": "Takes the program and its arguments, parses the flags, and prints usage help when no program is given.",
+      "slug": "command-line",
+      "title": "Command line and usage"
+     },
+     {
+      "description": "Connects the wrapped program's stdin, stdout and stderr straight to the user's terminal.",
+      "slug": "terminal-io",
+      "title": "Terminal input and output"
+     },
+     {
+      "description": "Returns the wrapped program's exit code, including signal deaths, as offline's own exit code.",
+      "slug": "exit-status",
+      "title": "Exit status passthrough"
+     }
+    ],
+    "description": "How a user launches a command under offline and what they get back.",
+    "slug": "program-execution",
+    "title": "Running a program"
+   },
+   {
+    "areas": [
+     {
+      "description": "A curl-piped script that clones or updates a checkout, then builds and installs the binary.",
+      "slug": "one-line-installer",
+      "title": "One-line installer"
+     },
+     {
+      "description": "Installs or removes the binary and its man page under a chosen prefix, by default ~/.local.",
+      "slug": "local-install",
+      "title": "Local install and uninstall"
+     },
+     {
+      "description": "A pinned, multi-stage, non-root image that ships the binary with only the seccomp runtime library.",
+      "slug": "container-image",
+      "title": "Container image"
+     }
+    ],
+    "description": "Ways to get offline onto a machine or into an image.",
+    "slug": "installation",
+    "title": "Installation and distribution"
+   },
+   {
+    "areas": [
+     {
+      "description": "Compiles the offline binary with the seccomp library it links against.",
+      "slug": "build",
+      "title": "Build"
+     },
+     {
+      "description": "Make targets that run tests with coverage, the pre-commit lint suite, formatting and static analysis.",
+      "slug": "quality-checks",
+      "title": "Quality checks"
+     },
+     {
+      "description": "Installs the pre-commit hook and lists the available make targets as help.",
+      "slug": "contributor-setup",
+      "title": "Contributor setup"
+     }
+    ],
+    "description": "Build and quality commands for people working on offline itself.",
+    "slug": "developer-tooling",
+    "title": "Developer tooling"
+   }
+  ]
+ }
+}
