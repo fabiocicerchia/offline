@@ -114,7 +114,9 @@ jobs:
           # install runs --no-install-recommends. Without it the arm64 leg dies
           # on `bits/libc-header-start.h: No such file or directory` while
           # building runtime/cgo, long before it reaches libseccomp.
-          sudo apt-get install -y --no-install-recommends \
+          # Multi-arch libraries must match across amd64 and arm64, and the runner's
+          # preinstalled toolchain can be newer than ports.ubuntu.com, so allow the step back.
+          sudo apt-get install -y --allow-downgrades --no-install-recommends \
             gcc-aarch64-linux-gnu libc6-dev:arm64 libseccomp-dev libseccomp-dev:arm64
 
       # `--skip=publish` because the draft release already exists and this job
