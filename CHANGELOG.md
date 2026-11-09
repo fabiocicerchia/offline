@@ -4,6 +4,40 @@ All notable changes to this project are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0](https://github.com/fabiocicerchia/offline/compare/v1.5.3...v1.6.0) (2026-11-09)
+
+
+### Features
+
+* add --keep-loopback and --log-external flags ([169af4c](https://github.com/fabiocicerchia/offline/commit/169af4cbdd256caddfb10344004a7005efc76a43))
+* add the eight-verb repo contract ([#69](https://github.com/fabiocicerchia/offline/issues/69)) ([67f2702](https://github.com/fabiocicerchia/offline/commit/67f2702086d28252febce090dfe8e5707b1b7586))
+* **docs:** build the docs site in Actions and drop Read the Docs ([#46](https://github.com/fabiocicerchia/offline/issues/46)) ([3f10500](https://github.com/fabiocicerchia/offline/commit/3f1050053a9699c379191c1cf4952b883c26ab4b))
+* **packaging:** man page, OS packages and a staged install ([#73](https://github.com/fabiocicerchia/offline/issues/73)) ([f32b461](https://github.com/fabiocicerchia/offline/commit/f32b4611584bb250f1e31f79bee3ee6c7d331e97))
+
+
+### Bug Fixes
+
+* `make install` and the one-line installer fail on the man page ([#120](https://github.com/fabiocicerchia/offline/issues/120)) ([908c78f](https://github.com/fabiocicerchia/offline/commit/908c78fcf07666ce8a472214eda612e16fdfce94))
+* 3 issues found by code-atlas (ci that cannot fail) ([#122](https://github.com/fabiocicerchia/offline/issues/122)) ([b6f140b](https://github.com/fabiocicerchia/offline/commit/b6f140bc917605766f38d7dbec9e17a5590f2e7e))
+* 4 issues found by code-atlas (quality gates) ([#117](https://github.com/fabiocicerchia/offline/issues/117)) ([b3b05dc](https://github.com/fabiocicerchia/offline/commit/b3b05dce2b75684d569e9e5824e121042366ba27))
+* 6 issues found by code-atlas (test suites) ([#123](https://github.com/fabiocicerchia/offline/issues/123)) ([de7226f](https://github.com/fabiocicerchia/offline/commit/de7226fc0f1d258f5b1d82ee3f63c28062832c80))
+* **build:** build against libseccomp with cgo, statically linked ([#78](https://github.com/fabiocicerchia/offline/issues/78)) ([e3523e6](https://github.com/fabiocicerchia/offline/commit/e3523e6b52318458b0595151c9824a06e1058d29))
+* **build:** install the arm64 libc headers for the cross build ([#80](https://github.com/fabiocicerchia/offline/issues/80)) ([1662942](https://github.com/fabiocicerchia/offline/commit/16629423b3726d8db0724f116194f1385c124cac))
+* **ci:** align codeql-action to v4.38.0 and read go version from go.mod ([#102](https://github.com/fabiocicerchia/offline/issues/102)) ([133913e](https://github.com/fabiocicerchia/offline/commit/133913ea21468f4fc7e0fb3c2cbfb3b9575df2a3))
+* **ci:** keep actions: read on the job that uploads sarif ([#101](https://github.com/fabiocicerchia/offline/issues/101)) ([60ba06c](https://github.com/fabiocicerchia/offline/commit/60ba06c9b6e883f2497a4cbd7b94cc6cc74a3d6c))
+* **ci:** pin the editorconfig-checker binary version ([#65](https://github.com/fabiocicerchia/offline/issues/65)) ([c0231eb](https://github.com/fabiocicerchia/offline/commit/c0231eb8857a6c5de920793a8b8ecb5265da8a7c))
+* **deps:** pin the Go toolchain to 1.26.5 for the stdlib CVE fixes ([b5ea232](https://github.com/fabiocicerchia/offline/commit/b5ea23221892c67c6739b0213ace91094a756967))
+* drop the PID namespace so /proc describes the sandboxed process ([#48](https://github.com/fabiocicerchia/offline/issues/48)) ([fcb5fa6](https://github.com/fabiocicerchia/offline/commit/fcb5fa605c60b9f5b08df035eec5f37065587910))
+* **lint:** funnel the re-exec env reads through one accessor ([#76](https://github.com/fabiocicerchia/offline/issues/76)) ([5e39fdf](https://github.com/fabiocicerchia/offline/commit/5e39fdf84d6398cbfa668f24743aeceb743218cf))
+* **pre-commit:** stop check-yaml failing on Helm templates and multi-doc manifests ([dad11c0](https://github.com/fabiocicerchia/offline/commit/dad11c0e44c63cae41ca6f302d2d7e235e1381d7))
+* **release:** let apt downgrade to match the arm64 ports ([#126](https://github.com/fabiocicerchia/offline/issues/126)) ([1fc6598](https://github.com/fabiocicerchia/offline/commit/1fc65987085abefebd46baf3d441c1cd70a3003f))
+* **release:** let the release PR carry a token that isn't GITHUB_TOKEN ([#89](https://github.com/fabiocicerchia/offline/issues/89)) ([3d68dfa](https://github.com/fabiocicerchia/offline/commit/3d68dfafc0de5986c215c39d5d07c5fe1044abba))
+* **release:** sign checksums with a Sigstore bundle ([#75](https://github.com/fabiocicerchia/offline/issues/75)) ([89e5d36](https://github.com/fabiocicerchia/offline/commit/89e5d36ef320703be1bbdb29a491ad8475479622))
+* security and code-quality findings ([#31](https://github.com/fabiocicerchia/offline/issues/31)) ([557bba0](https://github.com/fabiocicerchia/offline/commit/557bba0215ccc2d480f55f706ffeef36652d39e1))
+* **security:** skip the SARIF upload on private repos ([bf5f667](https://github.com/fabiocicerchia/offline/commit/bf5f66731e6b94db16a5b2c001b561352de84990))
+* Single responsibility in the repository (+5.9 points) ([#121](https://github.com/fabiocicerchia/offline/issues/121)) ([e2c3159](https://github.com/fabiocicerchia/offline/commit/e2c3159faff4f2ced8bc0ac1c21a5211cf9ce11e))
+* unblock quality and clear the Scorecard pinned-dependencies finding ([#54](https://github.com/fabiocicerchia/offline/issues/54)) ([04218f2](https://github.com/fabiocicerchia/offline/commit/04218f2c990c0262b39ff08c0bd0235dbeaefa21))
+
 ## [1.5.3](https://github.com/fabiocicerchia/offline/compare/v1.5.2...v1.5.3) (2026-11-06)
 
 
